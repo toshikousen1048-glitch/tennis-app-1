@@ -3,21 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>テニス 戦術マスターコンソール（シングルス/ダブルス完全統合・iPad対応版）</title>
+    <title>テニス 戦術マスターコンソール（全デバイス対応・完全統合版）</title>
     <style>
-        /* PC・iPad対応の柔軟なレイアウト */
+        /* ベースレイアウト */
         body { 
             margin: 0; padding: 0; 
             display: flex; justify-content: center; align-items: center; 
             min-height: 100vh; background-color: #263238; font-family: sans-serif;
-            overflow-x: hidden; /* 横スクロールのみ防止 */
+            overflow-x: hidden; 
         }
         
         #app-container { 
             display: flex; flex-direction: row; gap: 30px; 
             width: 98vw; max-width: 1800px; height: 96vh; 
             align-items: stretch; justify-content: center; 
-            padding: 2vh 0; box-sizing: border-box;
         }
         
         /* コートコンテナ */
@@ -32,21 +31,17 @@
             user-select: none; -webkit-user-select: none; touch-action: none; 
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        #court-container.rotated svg {
-            transform: rotate(180deg);
-        }
+        #court-container.rotated svg { transform: rotate(180deg); }
 
         svg text {
             transform-box: fill-box; transform-origin: center;
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        #court-container.rotated svg text {
-            transform: rotate(-180deg);
-        }
+        #court-container.rotated svg text { transform: rotate(-180deg); }
 
         .player { cursor: pointer; }
 
-        /* 操作パネル */
+        /* PC/iPad用操作パネル */
         #control-panel { 
             flex: 1 1 450px; max-width: 500px; height: 100%; 
             background: rgba(255, 255, 255, 0.95); padding: 25px; 
@@ -77,18 +72,37 @@
         }
         .toggle-label input { margin-right: 10px; transform: scale(1.2); }
 
-        /* ★ iPadの縦向きなど、画面幅が狭い場合へのレスポンシブ対応 */
-        @media (max-width: 1024px) {
-            #app-container {
-                flex-direction: column; align-items: center; 
-                height: auto; min-height: 100vh; padding: 20px 10px;
+        /* ★ モバイル用タブバー（初期状態は非表示） */
+        #mobile-tab-bar { display: none; }
+
+        /* ★ スマホ（画面幅768px以下）への次元シフト */
+        @media (max-width: 768px) {
+            body { background-color: #fff; align-items: flex-start; }
+            #app-container { 
+                flex-direction: column; width: 100%; height: auto; min-height: 100vh; 
+                gap: 0; padding: 0; padding-bottom: 60px; /* タブバーのスペース */
             }
-            #court-container {
-                width: 100%; max-width: 500px; height: auto; flex: none;
+            
+            #mobile-tab-bar { 
+                display: flex; position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; 
+                background: #fff; box-shadow: 0 -3px 8px rgba(0,0,0,0.15); z-index: 2000; border-top: 1px solid #eee; 
             }
-            #control-panel {
-                width: 100%; max-width: 500px; flex: none; height: auto;
+            #mobile-tab-bar button { flex: 1; border: none; background: none; font-weight: bold; font-size: 16px; color: #555; transition: 0.2s; }
+            #mobile-tab-bar button.active { background: #37474F; color: white; }
+
+            /* アクティブなタブのみ表示するロジック */
+            #court-container { 
+                width: 100%; height: calc(100vh - 60px); max-width: none; border-radius: 0; display: none; box-shadow: none;
             }
+            #court-container.active-tab { display: block; } 
+
+            #control-panel { 
+                width: 100%; height: calc(100vh - 60px); max-width: none; border-radius: 0; display: none; box-shadow: none; padding: 15px; 
+            }
+            #control-panel.active-tab { display: flex; }
+            
+            /* スマホ用のボタン配置微調整 */
+            #flip-court-btn { position: absolute; top: 10px; left: 10px; padding: 6px 10px; font-size: 12px; z-index: 100; background: rgba(255,255,255,0.8); border: 2px solid #37474F; border-radius: 4px; font-weight: bold;}
         }
     </style>
 </head>
@@ -96,7 +110,14 @@
 
     <div id="app-container">
         
-        <div id="court-container">
+        <div id="mobile-tab-bar">
+            <button id="tab-court" class="active">コート</button>
+            <button id="tab-controls">操作・設定</button>
+        </div>
+
+        <div id="court-container" class="active-tab">
+            <button id="flip-court-btn" style="display: none;">🔁 反転</button>
+
             <svg viewBox="-3 -3 16.97 29.77">
                 <defs>
                     <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
@@ -143,10 +164,10 @@
 
         <div id="control-panel">
             
-            <div class="setting-group" style="background: #ECEFF1; padding: 15px; border-radius: 6px; border: 1px solid #CFD8DC;">
+            <div class="setting-group" id="pc-flip-group" style="background: #ECEFF1; padding: 15px; border-radius: 6px; border: 1px solid #CFD8DC;">
                 <strong style="color: #37474F; font-size: 16px;">★ 視点操作</strong>
                 <div class="radio-group">
-                    <button id="flip-court-btn" class="btn" style="background-color: #37474F; width: 100%;">🔁 相手視点へ反転</button>
+                    <button id="pc-flip-court-btn" class="btn" style="background-color: #37474F; width: 100%;">🔁 相手視点へ反転</button>
                 </div>
             </div>
 
@@ -154,7 +175,7 @@
                 <strong style="color: #c2185b; font-size: 16px;">★ 空想ラリー（ボールの軌道）</strong>
                 <div class="radio-group">
                     <label class="toggle-label">
-                        <input type="checkbox" id="rally-mode-checkbox"> <strong>画面タッチでボール軌跡を記録する</strong>
+                        <input type="checkbox" id="rally-mode-checkbox"> <strong>画面タッチで軌跡を記録する</strong>
                     </label>
                     <label class="toggle-label">
                         <input type="checkbox" id="toggle-rally-display" checked> 軌跡（矢印）を表示する
@@ -250,18 +271,63 @@
     </div>
 
     <script>
-        const flipCourtBtn = document.getElementById('flip-court-btn');
+        // ★ スマホ・PCのレスポンシブ視点反転ボタン制御
+        const flipCourtBtnMobile = document.getElementById('flip-court-btn');
+        const flipCourtBtnPC = document.getElementById('pc-flip-court-btn');
         const courtContainer = document.getElementById('court-container');
 
-        flipCourtBtn.addEventListener('click', () => {
+        function toggleFlip() {
             courtContainer.classList.toggle('rotated');
-            if(courtContainer.classList.contains('rotated')) {
-                flipCourtBtn.innerText = '🔁 自陣視点へ戻す';
+            const isRotated = courtContainer.classList.contains('rotated');
+            flipCourtBtnMobile.innerText = isRotated ? '🔁 自陣へ' : '🔁 相手へ';
+            flipCourtBtnPC.innerText = isRotated ? '🔁 自陣視点へ戻す' : '🔁 相手視点へ反転';
+        }
+        flipCourtBtnMobile.addEventListener('click', toggleFlip);
+        flipCourtBtnPC.addEventListener('click', toggleFlip);
+
+        // レスポンシブUI切り替えロジック
+        const pcFlipGroup = document.getElementById('pc-flip-group');
+        function adjustUIForDevice() {
+            if (window.innerWidth <= 768) {
+                pcFlipGroup.style.display = 'none';
+                flipCourtBtnMobile.style.display = 'block';
             } else {
-                flipCourtBtn.innerText = '🔁 相手視点へ反転';
+                pcFlipGroup.style.display = 'block';
+                flipCourtBtnMobile.style.display = 'none';
+            }
+        }
+        window.addEventListener('resize', adjustUIForDevice);
+        adjustUIForDevice();
+
+        // ★ スマホ用タブ切り替えロジック
+        const tabCourt = document.getElementById('tab-court');
+        const tabControls = document.getElementById('tab-controls');
+        const controlPanel = document.getElementById('control-panel');
+
+        function switchMobileTab(target) {
+            if (window.innerWidth > 768) return;
+            if (target === 'court') {
+                tabCourt.classList.add('active'); tabControls.classList.remove('active');
+                courtContainer.classList.add('active-tab'); controlPanel.classList.remove('active-tab');
+            } else {
+                tabControls.classList.add('active'); tabCourt.classList.remove('active');
+                controlPanel.classList.add('active-tab'); courtContainer.classList.remove('active-tab');
+            }
+        }
+        tabCourt.addEventListener('click', () => switchMobileTab('court'));
+        tabControls.addEventListener('click', () => switchMobileTab('controls'));
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                courtContainer.style.display = ''; controlPanel.style.display = '';
+                courtContainer.classList.remove('active-tab'); controlPanel.classList.remove('active-tab');
+            } else {
+                // スマホサイズになったら強制的にコートタブを表示
+                switchMobileTab('court');
             }
         });
 
+        // 既存の要素取得と初期化
         const svg = document.querySelector('svg');
         const players = document.querySelectorAll('.player');
         const radioButtonsCourt = document.querySelectorAll('input[name="court-type"]');
@@ -271,7 +337,6 @@
         const angleShotSlider = document.getElementById('angle-shot-range');
         const angleShotValueSpan = document.getElementById('angle-shot-value');
         
-        // ★ 前衛スライダー要素
         const netRangeSlider = document.getElementById('net-player-range');
         const netRangeValueSpan = document.getElementById('net-range-value');
         const oppNetRangeSlider = document.getElementById('opp-net-player-range');
@@ -323,7 +388,6 @@
             }
         }
 
-        // マウス・タッチイベント (iPad対応)
         svg.addEventListener('mousedown', handleCourtInteraction);
         svg.addEventListener('touchstart', handleCourtInteraction, {passive: false});
         svg.addEventListener('mousemove', drag);
@@ -339,7 +403,6 @@
         spinCheckbox.addEventListener('change', updateTactics);
         angleShotSlider.addEventListener('input', (e) => { angleShotValueSpan.innerText = e.target.value; updateTactics(); });
         
-        // ★ 前衛スライダーのイベント
         netRangeSlider.addEventListener('input', (e) => { netRangeValueSpan.innerText = e.target.value; updateTactics(); });
         oppNetRangeSlider.addEventListener('input', (e) => { oppNetRangeValueSpan.innerText = e.target.value; updateTactics(); });
 
@@ -372,9 +435,7 @@
             let minDistance = 1.5; 
 
             players.forEach(player => {
-                // 非表示になっている前衛は掴めないようにする
                 if(player.getAttribute('visibility') === 'hidden') return;
-
                 const px = parseFloat(player.getAttribute('cx'));
                 const py = parseFloat(player.getAttribute('cy'));
                 const dist = Math.hypot(px - mousePos.x, py - mousePos.y);
@@ -495,7 +556,6 @@
             playerHistory.forEach((stepPositions, index) => {
                 const numberStr = NumberToMaru[index + 1] || (index + 1);
                 for (const playerId in stepPositions) {
-                    // シングルス時は前衛のゴーストを描画しない
                     if (isSingles && (playerId === 'player-me-net' || playerId === 'player-opp-net')) continue;
 
                     const pos = stepPositions[playerId];
@@ -618,6 +678,7 @@
             drawRally(); isAnimating = false;
         });
 
+        // Save/Load
         const saveBtn = document.getElementById('save-tactic-btn'); const loadBtn = document.getElementById('load-tactic-btn'); const deleteBtn = document.getElementById('delete-tactic-btn');
         const tacticNameInput = document.getElementById('tactic-name'); const savedList = document.getElementById('saved-tactics-list');
 
@@ -712,7 +773,6 @@
             const fan = document.getElementById('fan-area');
             fan.setAttribute('points', `${px},${py} ${ext_ax},${ext_ay} ${ext_bx},${ext_by}`);
 
-            // マスクの制御
             const maskNetCircle = document.getElementById('mask-net-circle');
             maskNetCircle.setAttribute('cx', nx); maskNetCircle.setAttribute('cy', ny); maskNetCircle.setAttribute('r', isSingles ? 0 : nr);
             
