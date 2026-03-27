@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>テニス 戦術マスターコンソール（左側クイックツールバー搭載版）</title>
+    <title>テニス 戦術マスターコンソール（アニメーション停止機能搭載）</title>
     <style>
         /* ベースレイアウト */
         body { 
@@ -20,13 +20,9 @@
             padding: 2vh 0; box-sizing: border-box;
         }
 
-        /* ★ 新設：左側のクイックツールバー */
+        /* 左側のクイックツールバー */
         #left-toolbar {
-            flex: 0 0 110px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            padding-top: 10px;
+            flex: 0 0 110px; display: flex; flex-direction: column; gap: 15px; padding-top: 10px;
         }
 
         #left-toolbar .tool-btn {
@@ -38,17 +34,9 @@
             display: flex; flex-direction: column; align-items: center; gap: 8px;
         }
 
-        #left-toolbar .tool-btn:hover {
-            transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.4);
-        }
-
+        #left-toolbar .tool-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.4); }
         #left-toolbar .tool-btn:active { transform: translateY(1px); box-shadow: none; }
-
-        #left-toolbar .tool-btn:disabled {
-            background: #90A4AE; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.6;
-        }
-
-        /* 軌跡モード時の強調カラー */
+        #left-toolbar .tool-btn:disabled { background: #90A4AE; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.6; }
         #left-toolbar .tool-btn.active { background: #E91E63; }
 
         /* コートコンテナ */
@@ -85,10 +73,11 @@
             background-color: #E91E63; color: white; border: none; 
             padding: 10px 15px; border-radius: 4px; cursor: pointer; 
             font-weight: bold; margin-top: 5px; font-size: 14px; text-align: center;
+            transition: all 0.2s;
         }
         .btn:hover { opacity: 0.85; transform: translateY(-1px); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         .btn:active { transform: translateY(1px); box-shadow: none; }
-        .btn:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7; box-shadow: none; transform: none; }
+        .btn:disabled { background-color: #ccc !important; cursor: not-allowed; opacity: 0.7; box-shadow: none; transform: none; }
         
         .btn-blue { background-color: #2196F3; } .btn-cyan { background-color: #00BCD4; }
         .btn-green { background-color: #4CAF50; } .btn-orange { background-color: #FF9800; } .btn-red { background-color: #F44336; }
@@ -101,44 +90,28 @@
 
         #mobile-tab-bar { display: none; }
 
-        /* ★ iPad縦画面（1024px以下）の時のツールバー変形 */
         @media (max-width: 1024px) {
             #app-container { flex-direction: column; align-items: center; height: auto; min-height: 100vh; padding: 20px 10px; }
-            
-            /* ツールバーを横並びにしてコートの上に配置 */
-            #left-toolbar { 
-                flex: 0 0 auto; flex-direction: row; width: 100%; max-width: 500px; 
-                justify-content: space-between; padding-top: 0; gap: 10px;
-            }
-            #left-toolbar .tool-btn { 
-                flex: 1; flex-direction: row; justify-content: center; padding: 12px; font-size: 14px; gap: 5px;
-            }
-
+            #left-toolbar { flex: 0 0 auto; flex-direction: row; width: 100%; max-width: 500px; justify-content: space-between; padding-top: 0; gap: 10px; }
+            #left-toolbar .tool-btn { flex: 1; flex-direction: row; justify-content: center; padding: 12px; font-size: 14px; gap: 5px; }
             #court-container { width: 100%; max-width: 500px; height: auto; flex: none; }
             #control-panel { width: 100%; max-width: 500px; flex: none; height: auto; }
         }
 
-        /* ★ スマホ（768px以下）の時はツールバーを隠し、フローティングボタンに切り替え */
         @media (max-width: 768px) {
             body { background-color: #fff; align-items: flex-start; }
             #app-container { gap: 0; padding: 0; padding-bottom: 60px; }
-            
-            #left-toolbar { display: none; } /* 左ツールバーは非表示 */
-
+            #left-toolbar { display: none; } 
             #mobile-tab-bar { 
                 display: flex; position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; 
                 background: #fff; box-shadow: 0 -3px 8px rgba(0,0,0,0.15); z-index: 2000; border-top: 1px solid #eee; 
             }
             #mobile-tab-bar button { flex: 1; border: none; background: none; font-weight: bold; font-size: 16px; color: #555; transition: 0.2s; }
             #mobile-tab-bar button.active { background: #37474F; color: white; }
-
             #court-container { width: 100%; height: calc(100vh - 60px); max-width: none; border-radius: 0; display: none; box-shadow: none; }
             #court-container.active-tab { display: block; } 
-
             #control-panel { width: 100%; height: calc(100vh - 60px); max-width: none; border-radius: 0; display: none; box-shadow: none; padding: 15px; }
             #control-panel.active-tab { display: flex; }
-            
-            /* スマホ用のフローティングボタン */
             #flip-court-btn-mobile { position: absolute; top: 10px; left: 10px; padding: 6px 10px; font-size: 12px; z-index: 100; background: rgba(255,255,255,0.9); border: 2px solid #37474F; border-radius: 4px; font-weight: bold;}
             #mobile-rally-toggle-btn { position: absolute; top: 10px; right: 10px; padding: 6px 10px; font-size: 12px; z-index: 100; background: rgba(255,255,255,0.9); border: 2px solid #E91E63; color: #E91E63; border-radius: 4px; font-weight: bold; transition: all 0.2s;}
             #mobile-rally-toggle-btn.active { background: #E91E63; color: white;}
@@ -213,7 +186,8 @@
             <div class="setting-group" style="background: #ffebee; padding: 15px; border-radius: 6px; border: 1px solid #ffcdd2;">
                 <strong style="color: #c2185b; font-size: 16px;">★ 空想ラリー（ボールの軌道）</strong>
                 <div class="radio-group">
-                    <label class="toggle-label" style="display: none;"> <input type="checkbox" id="rally-mode-checkbox"> 画面タッチで軌跡を記録する
+                    <label class="toggle-label" style="display: none;">
+                        <input type="checkbox" id="rally-mode-checkbox"> 画面タッチで軌跡を記録する
                     </label>
                     <label class="toggle-label">
                         <input type="checkbox" id="toggle-rally-display" checked> 軌跡（矢印）を表示する
@@ -227,7 +201,7 @@
             </div>
 
             <div class="setting-group" style="background: #E0F7FA; padding: 15px; border-radius: 6px; border: 1px solid #B2EBF2;">
-                <strong style="color: #006064; font-size: 16px;">★ 陣形の記録と履歴操作</strong>
+                <strong style="color: #006064; font-size: 16px;">★ 陣形の記録と総合アニメーション</strong>
                 <div class="radio-group">
                     <label class="toggle-label">
                         <input type="checkbox" id="toggle-ghost-display" checked> <strong>プレイヤーの過去位置を表示</strong>
@@ -237,7 +211,7 @@
                         <button id="undo-snapshot-btn" class="btn btn-blue" style="flex: 1;" disabled>← 戻す</button>
                         <button id="redo-snapshot-btn" class="btn btn-cyan" style="flex: 1;" disabled>進む →</button>
                     </div>
-                    <button id="play-animation-btn" class="btn btn-green" disabled style="display:none;">▶ アニメーション再生</button>
+                    <button id="play-animation-btn" class="btn btn-green" disabled>▶ アニメーション再生 (ラリー＆陣形)</button>
                     <button id="clear-snapshots-btn" class="btn btn-red" style="width: 100%;">記録を全クリア</button>
                 </div>
             </div>
@@ -309,7 +283,7 @@
     </div>
 
     <script>
-        // ★ 左ツールバーとスマホ用ボタンの完全同期ロジック
+        // UI状態同期・切り替え
         const mobileRallyToggleBtn = document.getElementById('mobile-rally-toggle-btn');
         const rallyModeCheckbox = document.getElementById('rally-mode-checkbox');
         const toolbarModeBtn = document.getElementById('toolbar-mode-btn');
@@ -330,19 +304,10 @@
             }
         }
 
-        mobileRallyToggleBtn.addEventListener('click', () => {
-            rallyModeCheckbox.checked = !rallyModeCheckbox.checked;
-            updateRallyToggleUI();
-        });
-        
-        toolbarModeBtn.addEventListener('click', () => {
-            rallyModeCheckbox.checked = !rallyModeCheckbox.checked;
-            updateRallyToggleUI();
-        });
-
+        mobileRallyToggleBtn.addEventListener('click', () => { rallyModeCheckbox.checked = !rallyModeCheckbox.checked; updateRallyToggleUI(); });
+        toolbarModeBtn.addEventListener('click', () => { rallyModeCheckbox.checked = !rallyModeCheckbox.checked; updateRallyToggleUI(); });
         rallyModeCheckbox.addEventListener('change', updateRallyToggleUI);
 
-        // 視点反転ロジック
         const flipCourtBtnMobile = document.getElementById('flip-court-btn-mobile');
         const courtContainer = document.getElementById('court-container');
 
@@ -355,20 +320,16 @@
         flipCourtBtnMobile.addEventListener('click', toggleFlip);
         toolbarFlipBtn.addEventListener('click', toggleFlip);
 
-        // レスポンシブUI切り替えロジック
         function adjustUIForDevice() {
             if (window.innerWidth <= 768) {
-                flipCourtBtnMobile.style.display = 'block';
-                mobileRallyToggleBtn.style.display = 'block'; 
+                flipCourtBtnMobile.style.display = 'block'; mobileRallyToggleBtn.style.display = 'block'; 
             } else {
-                flipCourtBtnMobile.style.display = 'none';
-                mobileRallyToggleBtn.style.display = 'none';
+                flipCourtBtnMobile.style.display = 'none'; mobileRallyToggleBtn.style.display = 'none';
             }
         }
         window.addEventListener('resize', adjustUIForDevice);
         adjustUIForDevice();
 
-        // スマホ用タブ切り替えロジック
         const tabCourt = document.getElementById('tab-court');
         const tabControls = document.getElementById('tab-controls');
         const controlPanel = document.getElementById('control-panel');
@@ -390,12 +351,9 @@
             if (window.innerWidth > 768) {
                 courtContainer.style.display = ''; controlPanel.style.display = '';
                 courtContainer.classList.remove('active-tab'); controlPanel.classList.remove('active-tab');
-            } else {
-                switchMobileTab('court');
-            }
+            } else { switchMobileTab('court'); }
         });
 
-        // 既存の要素取得と初期化
         const svg = document.querySelector('svg');
         const players = document.querySelectorAll('.player');
         const radioButtonsCourt = document.querySelectorAll('input[name="court-type"]');
@@ -404,7 +362,6 @@
         const spinCheckbox = document.getElementById('spin-effect');
         const angleShotSlider = document.getElementById('angle-shot-range');
         const angleShotValueSpan = document.getElementById('angle-shot-value');
-        
         const netRangeSlider = document.getElementById('net-player-range');
         const netRangeValueSpan = document.getElementById('net-range-value');
         const oppNetRangeSlider = document.getElementById('opp-net-player-range');
@@ -425,24 +382,23 @@
         const clearRallyBtn = document.getElementById('clear-rally-btn');
         const undoRallyBtn = document.getElementById('undo-rally-btn');
         const redoRallyBtn = document.getElementById('redo-rally-btn');
-        let rallyPoints = [];
-        let rallyRedoStack = [];
+        let rallyPoints = []; let rallyRedoStack = [];
 
         const snapshotBtn = document.getElementById('snapshot-btn');
         const undoSnapshotBtn = document.getElementById('undo-snapshot-btn');
         const redoSnapshotBtn = document.getElementById('redo-snapshot-btn');
         const clearSnapshotsBtn = document.getElementById('clear-snapshots-btn');
         const playAnimationBtn = document.getElementById('play-animation-btn');
-        let playerHistory = []; 
-        let playerRedoStack = [];
+        let playerHistory = []; let playerRedoStack = [];
+        
+        // ★ アニメーション中断用フラグ群
         let isAnimating = false;
+        let cancelAnimation = false;
 
-        let selectedPlayer = null;
-        let offset = { x: 0, y: 0 };
+        let selectedPlayer = null; let offset = { x: 0, y: 0 };
 
         const heatmapLayer = document.getElementById('heatmap-layer');
-        const gridCells = [];
-        const gridSize = 0.5;
+        const gridCells = []; const gridSize = 0.5;
         
         for (let x = 0; x <= 11; x += gridSize) {
             for (let y = 0; y <= 24; y += gridSize) {
@@ -469,7 +425,6 @@
         returnCheckbox.addEventListener('change', updateTactics);
         spinCheckbox.addEventListener('change', updateTactics);
         angleShotSlider.addEventListener('input', (e) => { angleShotValueSpan.innerText = e.target.value; updateTactics(); });
-        
         netRangeSlider.addEventListener('input', (e) => { netRangeValueSpan.innerText = e.target.value; updateTactics(); });
         oppNetRangeSlider.addEventListener('input', (e) => { oppNetRangeValueSpan.innerText = e.target.value; updateTactics(); });
 
@@ -480,8 +435,20 @@
             return { x: (clientX - CTM.e) / CTM.a, y: (clientY - CTM.f) / CTM.d };
         }
 
-        // ★ アニメーションボタンの状態同期
+        // ★ アニメーションボタンの状態変更（停止・再生をトグル可能にする）
+        function setAnimationButtonState(playing) {
+            const playBtnText = playing ? "■ アニメーション停止" : "▶ アニメーション再生 (ラリー＆陣形)";
+            const toolBtnText = playing ? "<span>■</span><span>停止</span>" : "<span>▶</span><span>アニメ再生</span>";
+            const bgColor = playing ? "#F44336" : "#4CAF50"; 
+            
+            playAnimationBtn.innerText = playBtnText;
+            playAnimationBtn.style.backgroundColor = bgColor;
+            toolbarPlayBtn.innerHTML = toolBtnText;
+            toolbarPlayBtn.style.backgroundColor = bgColor;
+        }
+
         function checkAnimationBtn() {
+            if (isAnimating) return; // 再生中はDisabled判定を無視する
             const disabled = (playerHistory.length < 2 && rallyPoints.length < 2);
             playAnimationBtn.disabled = disabled;
             toolbarPlayBtn.disabled = disabled;
@@ -492,22 +459,14 @@
             if(isAnimating) return; 
             
             const mousePos = getMousePosition(evt);
-            
             if (rallyModeCheckbox.checked) {
-                rallyPoints.push(mousePos);
-                rallyRedoStack = []; 
-                updateRallyButtons();
-                drawRally();
-                return;
+                rallyPoints.push(mousePos); rallyRedoStack = []; updateRallyButtons(); drawRally(); return;
             }
 
-            let closestPlayer = null;
-            let minDistance = 1.5; 
-
+            let closestPlayer = null; let minDistance = 1.5; 
             players.forEach(player => {
                 if(player.getAttribute('visibility') === 'hidden') return;
-                const px = parseFloat(player.getAttribute('cx'));
-                const py = parseFloat(player.getAttribute('cy'));
+                const px = parseFloat(player.getAttribute('cx')); const py = parseFloat(player.getAttribute('cy'));
                 const dist = Math.hypot(px - mousePos.x, py - mousePos.y);
                 if (dist < minDistance) { minDistance = dist; closestPlayer = player; }
             });
@@ -537,12 +496,8 @@
             checkAnimationBtn();
         }
 
-        undoRallyBtn.addEventListener('click', () => {
-            if (rallyPoints.length > 0) { rallyRedoStack.push(rallyPoints.pop()); updateRallyButtons(); drawRally(); }
-        });
-        redoRallyBtn.addEventListener('click', () => {
-            if (rallyRedoStack.length > 0) { rallyPoints.push(rallyRedoStack.pop()); updateRallyButtons(); drawRally(); }
-        });
+        undoRallyBtn.addEventListener('click', () => { if (rallyPoints.length > 0) { rallyRedoStack.push(rallyPoints.pop()); updateRallyButtons(); drawRally(); } });
+        redoRallyBtn.addEventListener('click', () => { if (rallyRedoStack.length > 0) { rallyPoints.push(rallyRedoStack.pop()); updateRallyButtons(); drawRally(); } });
         clearRallyBtn.addEventListener('click', () => { rallyPoints = []; rallyRedoStack = []; updateRallyButtons(); drawRally(); });
 
         function drawRally() {
@@ -592,8 +547,7 @@
             if (playerHistory.length > 0) {
                 playerRedoStack.push(playerHistory.pop());
                 let targetPositions = playerHistory.length > 0 ? playerHistory[playerHistory.length - 1] : { 
-                    "player-me-base": {x: 8, y: 22}, "player-opp-base": {x: 3, y: 2},
-                    "player-me-net": {x: 3, y: 14}, "player-opp-net": {x: 8, y: 9}
+                    "player-me-base": {x: 8, y: 22}, "player-opp-base": {x: 3, y: 2}, "player-me-net": {x: 3, y: 14}, "player-opp-net": {x: 8, y: 9}
                 };
                 for (const id in targetPositions) {
                     const node = document.getElementById(id);
@@ -627,80 +581,110 @@
                 const numberStr = NumberToMaru[index + 1] || (index + 1);
                 for (const playerId in stepPositions) {
                     if (isSingles && (playerId === 'player-me-net' || playerId === 'player-opp-net')) continue;
-
                     const pos = stepPositions[playerId];
                     const isRed = document.getElementById(playerId).getAttribute('fill') === '#FF5252';
-
-                    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-                    group.setAttribute('opacity', 0.25); 
-
+                    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g'); group.setAttribute('opacity', 0.25); 
                     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                    circle.setAttribute('cx', pos.x); circle.setAttribute('cy', pos.y);
-                    circle.setAttribute('r', 0.4); circle.setAttribute('fill', isRed ? '#FF8A80' : '#82B1FF'); 
-                    circle.setAttribute('stroke', 'white'); circle.setAttribute('stroke-width', 0.03);
-                    group.appendChild(circle);
-
+                    circle.setAttribute('cx', pos.x); circle.setAttribute('cy', pos.y); circle.setAttribute('r', 0.4); circle.setAttribute('fill', isRed ? '#FF8A80' : '#82B1FF'); 
+                    circle.setAttribute('stroke', 'white'); circle.setAttribute('stroke-width', 0.03); group.appendChild(circle);
                     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                    text.setAttribute('x', pos.x); text.setAttribute('y', pos.y + 0.15); 
-                    text.setAttribute('font-size', '0.5'); text.setAttribute('font-weight', 'bold');
-                    text.setAttribute('fill', isRed ? '#b71c1c' : '#0d47a1'); text.setAttribute('text-anchor', 'middle'); text.textContent = numberStr;
-                    group.appendChild(text);
-
+                    text.setAttribute('x', pos.x); text.setAttribute('y', pos.y + 0.15); text.setAttribute('font-size', '0.5'); text.setAttribute('font-weight', 'bold');
+                    text.setAttribute('fill', isRed ? '#b71c1c' : '#0d47a1'); text.setAttribute('text-anchor', 'middle'); text.textContent = numberStr; group.appendChild(text);
                     ghostLayer.appendChild(group);
                 }
             });
         }
 
-        // ツールバーの再生ボタンからメインの再生ロジックをトリガー
         toolbarPlayBtn.addEventListener('click', () => { playAnimationBtn.click(); });
 
+        // ★ 非同期キャンセリング可能な遅延関数
+        const stoppableDelay = (ms) => new Promise(resolve => {
+            let start = null;
+            function loop(time) {
+                if (cancelAnimation) return resolve(true); // キャンセルされたらtrueを返す
+                if (!start) start = time;
+                if (time - start >= ms) return resolve(false);
+                requestAnimationFrame(loop);
+            }
+            requestAnimationFrame(loop);
+        });
+
+        // ★ アニメーション再生・停止のメインロジック
         playAnimationBtn.addEventListener('click', async () => {
-            if ((playerHistory.length < 2 && rallyPoints.length < 2) || isAnimating) return;
+            // 再生中の場合は停止（キャンセル）要求を出す
+            if (isAnimating) {
+                cancelAnimation = true;
+                return;
+            }
+
+            if (playerHistory.length < 2 && rallyPoints.length < 2) return;
+            
             isAnimating = true;
+            cancelAnimation = false;
+            setAnimationButtonState(true);
 
             const animDuration = 800; 
             const intervalTime = 200; 
 
-            const animatePlayers = () => new Promise(resolve => {
-                if (playerHistory.length < 2) return resolve();
-                let step = 0;
+            // プレイヤー位置の初期化
+            if (playerHistory.length >= 2) {
                 for (const id in playerHistory[0]) {
                     const node = document.getElementById(id);
                     if(node) { node.setAttribute('cx', playerHistory[0][id].x); node.setAttribute('cy', playerHistory[0][id].y); }
                 }
                 updateTactics();
+            }
 
-                function nextStep() {
-                    if (step >= playerHistory.length - 1) return resolve();
-                    const startPos = playerHistory[step]; const endPos = playerHistory[step + 1];
-                    let startTime = null; 
+            // 最初のタメ（ここでキャンセルされたら抜ける）
+            if (await stoppableDelay(500)) { finishAnimation(); return; }
 
-                    function frame(time) {
-                        if (!startTime) startTime = time;
-                        let progress = (time - startTime) / animDuration;
-                        if (progress > 1) progress = 1;
-                        
-                        const ease = progress < .5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+            const animatePlayers = () => new Promise(async resolve => {
+                if (playerHistory.length < 2) return resolve();
+                let step = 0;
+                
+                while(step < playerHistory.length - 1) {
+                    if (cancelAnimation) return resolve();
+                    
+                    const startPos = playerHistory[step]; 
+                    const endPos = playerHistory[step + 1];
 
-                        for (const id in startPos) {
-                            const node = document.getElementById(id);
-                            if(node) {
-                                const cx = startPos[id].x + (endPos[id].x - startPos[id].x) * ease;
-                                const cy = startPos[id].y + (endPos[id].y - startPos[id].y) * ease;
-                                node.setAttribute('cx', cx); node.setAttribute('cy', cy);
+                    // 1フレームの移動
+                    await new Promise(res => {
+                        let startTime = null; 
+                        function frame(time) {
+                            if (cancelAnimation) return res();
+                            if (!startTime) startTime = time;
+                            let progress = (time - startTime) / animDuration;
+                            if (progress > 1) progress = 1;
+                            
+                            const ease = progress < .5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+
+                            for (const id in startPos) {
+                                const node = document.getElementById(id);
+                                if(node) {
+                                    const cx = startPos[id].x + (endPos[id].x - startPos[id].x) * ease;
+                                    const cy = startPos[id].y + (endPos[id].y - startPos[id].y) * ease;
+                                    node.setAttribute('cx', cx); node.setAttribute('cy', cy);
+                                }
                             }
-                        }
-                        updateTactics();
+                            updateTactics();
 
-                        if (progress < 1) requestAnimationFrame(frame);
-                        else { step++; setTimeout(nextStep, intervalTime); }
+                            if (progress < 1) requestAnimationFrame(frame);
+                            else res();
+                        }
+                        requestAnimationFrame(frame);
+                    });
+
+                    if (cancelAnimation) return resolve();
+                    step++;
+                    if (step < playerHistory.length - 1) {
+                        if (await stoppableDelay(intervalTime)) return resolve();
                     }
-                    requestAnimationFrame(frame);
                 }
-                setTimeout(nextStep, 500); 
+                resolve();
             });
 
-            const animateRallyTrace = () => new Promise(resolve => {
+            const animateRallyTrace = () => new Promise(async resolve => {
                 if (rallyPoints.length < 2) return resolve();
                 rallyTraceLayer.innerHTML = ''; 
                 
@@ -717,38 +701,63 @@
                 drawPoint(rallyPoints[0], 0);
 
                 let step = 0;
-                function nextStep() {
-                    if (step >= rallyPoints.length - 1) return resolve();
-                    const startPos = rallyPoints[step]; const endPos = rallyPoints[step + 1];
-                    let startTime = null; 
+                while (step < rallyPoints.length - 1) {
+                    if (cancelAnimation) return resolve();
+
+                    const startPos = rallyPoints[step]; 
+                    const endPos = rallyPoints[step + 1];
 
                     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                     line.setAttribute('x1', startPos.x); line.setAttribute('y1', startPos.y); line.setAttribute('x2', startPos.x); line.setAttribute('y2', startPos.y);
                     line.setAttribute('stroke', '#E91E63'); line.setAttribute('stroke-width', '0.08'); line.setAttribute('stroke-dasharray', '0.3 0.3'); line.setAttribute('marker-end', 'url(#arrowhead)');
                     rallyTraceLayer.insertBefore(line, rallyTraceLayer.firstChild);
 
-                    function frame(time) {
-                        if (!startTime) startTime = time;
-                        let progress = (time - startTime) / animDuration;
-                        if (progress > 1) progress = 1;
-                        
-                        const ease = progress < .5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
-                        
-                        const currentX = startPos.x + (endPos.x - startPos.x) * ease;
-                        const currentY = startPos.y + (endPos.y - startPos.y) * ease;
-                        
-                        line.setAttribute('x2', currentX); line.setAttribute('y2', currentY);
+                    // 1本の線の描画
+                    await new Promise(res => {
+                        let startTime = null; 
+                        function frame(time) {
+                            if (cancelAnimation) return res();
+                            if (!startTime) startTime = time;
+                            let progress = (time - startTime) / animDuration;
+                            if (progress > 1) progress = 1;
+                            
+                            const ease = progress < .5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+                            
+                            const currentX = startPos.x + (endPos.x - startPos.x) * ease;
+                            const currentY = startPos.y + (endPos.y - startPos.y) * ease;
+                            
+                            line.setAttribute('x2', currentX); line.setAttribute('y2', currentY);
 
-                        if (progress < 1) requestAnimationFrame(frame);
-                        else { drawPoint(endPos, step + 1); step++; setTimeout(nextStep, intervalTime); }
+                            if (progress < 1) requestAnimationFrame(frame);
+                            else res();
+                        }
+                        requestAnimationFrame(frame);
+                    });
+
+                    if (cancelAnimation) return resolve();
+                    drawPoint(endPos, step + 1);
+                    step++;
+                    if (step < rallyPoints.length - 1) {
+                        if (await stoppableDelay(intervalTime)) return resolve();
                     }
-                    requestAnimationFrame(frame);
                 }
-                setTimeout(nextStep, 500); 
+                resolve();
             });
 
+            // プレイヤーと軌跡、両方のアニメーションの終了（または中断）を待機
             await Promise.all([animatePlayers(), animateRallyTrace()]);
-            drawRally(); isAnimating = false;
+            
+            function finishAnimation() {
+                isAnimating = false;
+                setAnimationButtonState(false);
+                // 停止要求がなく最後まで完走した時のみ、完全な状態のラリー軌跡を描き直す
+                if (!cancelAnimation && rallyPoints.length > 0) {
+                    drawRally(); 
+                }
+                cancelAnimation = false;
+            }
+            
+            finishAnimation();
         });
 
         // Save/Load
