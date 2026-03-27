@@ -3,52 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>テニス ダブルス・ポジショニング</title>
+    <title>テニス 戦術マスターコンソール（シングルス/ダブルス完全統合・iPad対応版）</title>
     <style>
-        body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #e0e0e0; font-family: sans-serif;}
+        /* PC・iPad対応の柔軟なレイアウト */
+        body { 
+            margin: 0; padding: 0; 
+            display: flex; justify-content: center; align-items: center; 
+            min-height: 100vh; background-color: #263238; font-family: sans-serif;
+            overflow-x: hidden; /* 横スクロールのみ防止 */
+        }
         
-        #app-container { display: flex; flex-direction: row; gap: 20px; width: 95vw; max-width: 1100px; height: 95vh; align-items: stretch; position: relative; }
+        #app-container { 
+            display: flex; flex-direction: row; gap: 30px; 
+            width: 98vw; max-width: 1800px; height: 96vh; 
+            align-items: stretch; justify-content: center; 
+            padding: 2vh 0; box-sizing: border-box;
+        }
         
-        #mobile-tab-bar { display: none; }
+        /* コートコンテナ */
+        #court-container { 
+            flex: 0 0 auto; height: 100%; aspect-ratio: 16.97 / 29.77; 
+            background-color: #2E7D32; box-shadow: 0 8px 24px rgba(0,0,0,0.4); 
+            position: relative; border-radius: 8px; overflow: hidden;
+        }
 
-        #court-container { flex: 0 0 auto; height: 100%; aspect-ratio: 16.97 / 29.77; background-color: #2E7D32; box-shadow: 0 4px 12px rgba(0,0,0,0.2); position: relative; }
-        svg { width: 100%; height: 100%; user-select: none; -webkit-user-select: none; }
+        #court-container svg { 
+            width: 100%; height: 100%; 
+            user-select: none; -webkit-user-select: none; touch-action: none; 
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #court-container.rotated svg {
+            transform: rotate(180deg);
+        }
+
+        svg text {
+            transform-box: fill-box; transform-origin: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #court-container.rotated svg text {
+            transform: rotate(-180deg);
+        }
+
         .player { cursor: pointer; }
 
-        #control-panel { flex: 1 1 320px; background: rgba(255, 255, 255, 0.9); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 14px; box-sizing: border-box; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-
-        .setting-group { border-bottom: 1px solid #ccc; padding-bottom: 12px; }
-        .setting-group:last-child { border-bottom: none; padding-bottom: 0; }
-        .radio-group { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-        
-        .btn {
-            background-color: #E91E63; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px;
+        /* 操作パネル */
+        #control-panel { 
+            flex: 1 1 450px; max-width: 500px; height: 100%; 
+            background: rgba(255, 255, 255, 0.95); padding: 25px; 
+            border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
+            font-size: 15px; box-sizing: border-box; overflow-y: auto; 
+            display: flex; flex-direction: column; gap: 20px; 
         }
-        .btn:hover { background-color: #C2185B; }
 
-        @media (max-width: 768px) {
-            #app-container { flex-direction: column; height: auto; padding: 0; gap: 0; }
-            
-            #mobile-tab-bar {
-                display: flex; position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #fff; box-shadow: 0 -3px 8px rgba(0,0,0,0.15); z-index: 2000; border-top: 1px solid #eee;
+        .setting-group { border-bottom: 1px solid #ddd; padding-bottom: 15px; }
+        .setting-group:last-child { border-bottom: none; padding-bottom: 0; }
+        .radio-group { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        
+        .btn { 
+            background-color: #E91E63; color: white; border: none; 
+            padding: 10px 15px; border-radius: 4px; cursor: pointer; 
+            font-weight: bold; margin-top: 5px; font-size: 14px; text-align: center;
+        }
+        .btn:hover { opacity: 0.85; transform: translateY(-1px); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .btn:active { transform: translateY(1px); box-shadow: none; }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7; box-shadow: none; transform: none; }
+        
+        .btn-blue { background-color: #2196F3; } .btn-cyan { background-color: #00BCD4; }
+        .btn-green { background-color: #4CAF50; } .btn-orange { background-color: #FF9800; } .btn-red { background-color: #F44336; }
+
+        .toggle-label { 
+            display: flex; align-items: center; background: #fff; 
+            padding: 8px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;
+        }
+        .toggle-label input { margin-right: 10px; transform: scale(1.2); }
+
+        /* ★ iPadの縦向きなど、画面幅が狭い場合へのレスポンシブ対応 */
+        @media (max-width: 1024px) {
+            #app-container {
+                flex-direction: column; align-items: center; 
+                height: auto; min-height: 100vh; padding: 20px 10px;
             }
-            #mobile-tab-bar button { flex: 1; border: none; background: none; font-weight: bold; font-size: 16px; transition: 0.2s; color: #555;}
-            #mobile-tab-bar button.active { background: #E91E63; color: white; }
-
             #court-container {
-                width: 100%; height: calc(100vh - 70px); 
-                max-width: none; margin: 0; box-shadow: none; border-radius: 0;
-                display: none; 
+                width: 100%; max-width: 500px; height: auto; flex: none;
             }
-            #court-container.active-tab { display: block; } 
-            
             #control-panel {
-                width: 100%; height: calc(100vh - 70px); 
-                max-width: none; margin: 0; border-radius: 0; box-shadow: none;
-                display: none; 
-                padding: 15px;
+                width: 100%; max-width: 500px; flex: none; height: auto;
             }
-            #control-panel.active-tab { display: block; }
         }
     </style>
 </head>
@@ -56,99 +96,150 @@
 
     <div id="app-container">
         
-        <div id="mobile-tab-bar">
-            <button id="tab-court" class="active">コート表示</button>
-            <button id="tab-controls">設定変更</button>
-        </div>
-
-        <div id="court-container" class="active-tab">
+        <div id="court-container">
             <svg viewBox="-3 -3 16.97 29.77">
                 <defs>
+                    <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                        <polygon points="0 0, 6 3, 0 6" fill="#E91E63" />
+                    </marker>
                     <mask id="overlap-mask">
                         <rect x="-10" y="-10" width="40" height="50" fill="white" />
                         <circle id="mask-net-circle" cx="0" cy="0" r="1.8" fill="black" />
                     </mask>
-                    <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
-                        <polygon points="0 0, 6 3, 0 6" fill="#E91E63" />
-                    </marker>
                 </defs>
 
                 <rect x="0" y="0" width="10.97" height="23.77" fill="#4CAF50" stroke="white" stroke-width="0.1" />
 
                 <g id="heatmap-layer"></g>
 
-                <line x1="1.37" y1="0" x2="1.37" y2="23.77" stroke="white" stroke-width="0.05" />
-                <line x1="9.60" y1="0" x2="9.60" y2="23.77" stroke="white" stroke-width="0.05" />
-                <line x1="-3" y1="11.885" x2="13.97" y2="11.885" stroke="black" stroke-width="0.1" stroke-dasharray="0.2 0.2" />
-                <line x1="1.37" y1="5.485" x2="9.60" y2="5.485" stroke="white" stroke-width="0.05" />
-                <line x1="1.37" y1="18.285" x2="9.60" y2="18.285" stroke="white" stroke-width="0.05" />
-                <line x1="5.485" y1="5.485" x2="5.485" y2="18.285" stroke="white" stroke-width="0.05" />
+                <g id="court-lines-layer">
+                    <line x1="1.37" y1="0" x2="1.37" y2="23.77" stroke="white" stroke-width="0.08" />
+                    <line x1="9.60" y1="0" x2="9.60" y2="23.77" stroke="white" stroke-width="0.08" />
+                    <line x1="1.37" y1="5.485" x2="9.60" y2="5.485" stroke="white" stroke-width="0.08" />
+                    <line x1="1.37" y1="18.285" x2="9.60" y2="18.285" stroke="white" stroke-width="0.08" />
+                    <line x1="5.485" y1="5.485" x2="5.485" y2="18.285" stroke="white" stroke-width="0.08" />
+                    <line x1="-3" y1="11.885" x2="13.97" y2="11.885" stroke="black" stroke-width="0.1" stroke-dasharray="0.2 0.2" />
+                </g>
 
-                <circle id="net-player-cover" cx="0" cy="0" r="1.8" fill="rgba(255, 82, 82, 0.2)" stroke="rgba(255, 82, 82, 0.5)" stroke-width="0.05" />
-                <polygon id="fan-area" points="" fill="rgba(255, 235, 59, 0.5)" mask="url(#overlap-mask)" />
-                <line id="center-line" x1="0" y1="0" x2="0" y2="0" stroke="#FF9800" stroke-width="0.08" stroke-dasharray="0.2 0.2" />
+                <g id="geometry-guides">
+                    <circle id="net-player-cover" cx="0" cy="0" r="1.8" fill="rgba(255, 82, 82, 0.2)" stroke="rgba(255, 82, 82, 0.5)" stroke-width="0.05" />
+                    <circle id="opp-net-cover" cx="0" cy="0" r="1.8" fill="rgba(68, 138, 255, 0.2)" stroke="rgba(68, 138, 255, 0.5)" stroke-width="0.05" />
+                    <polygon id="fan-area" points="" fill="rgba(255, 235, 59, 0.4)" mask="url(#overlap-mask)" />
+                    <line id="center-line" x1="0" y1="0" x2="0" y2="0" stroke="#FF9800" stroke-width="0.08" stroke-dasharray="0.2 0.2" />
+                    <line id="target-line" x1="0" y1="0" x2="0" y2="0" stroke="#E91E63" stroke-width="0.1" stroke-dasharray="0.2 0.2" />
+                </g>
                 
                 <polygon id="return-fan-area" points="" fill="rgba(255, 255, 255, 0.15)" stroke="#FFFFFF" stroke-width="0.06" stroke-dasharray="0.2 0.2" style="display: none;" />
 
-                <circle id="opp-net-cover" cx="0" cy="0" r="1.8" fill="rgba(68, 138, 255, 0.2)" stroke="rgba(68, 138, 255, 0.5)" stroke-width="0.05" />
-                <line id="target-line" x1="0" y1="0" x2="0" y2="0" stroke="#E91E63" stroke-width="0.1" stroke-dasharray="0.2 0.2" />
-
+                <g id="player-ghost-layer"></g>
                 <g id="rally-trace-layer"></g>
 
                 <circle id="player-me-net" cx="3" cy="14" r="0.4" fill="#FF5252" stroke="white" stroke-width="0.05" class="player" />
-                <circle id="player-me-base" cx="8" cy="20" r="0.4" fill="#FF5252" stroke="white" stroke-width="0.05" class="player" />
                 <circle id="player-opp-net" cx="8" cy="9" r="0.4" fill="#448AFF" stroke="white" stroke-width="0.05" class="player" />
-                <circle id="player-opp-base" cx="3" cy="3" r="0.4" fill="#448AFF" stroke="white" stroke-width="0.05" class="player" />
+                <circle id="player-me-base" cx="8" cy="22" r="0.4" fill="#FF5252" stroke="white" stroke-width="0.05" class="player" />
+                <circle id="player-opp-base" cx="3" cy="2" r="0.4" fill="#448AFF" stroke="white" stroke-width="0.05" class="player" />
             </svg>
         </div>
 
         <div id="control-panel">
-            <div class="setting-group" style="background: #ffebee; padding: 10px; border-radius: 5px; border: 1px solid #ffcdd2;">
-                <strong style="color: #c2185b;">★ 空想ラリー（軌道記録）</strong>
-                <div class="radio-group" style="font-size: 13px;">
-                    <label><input type="checkbox" id="rally-mode-checkbox"> 画面タッチでボールの軌跡を記録する</label>
-                    <button id="clear-rally-btn" class="btn">軌跡をリセット</button>
-                    <span style="font-size: 11px; color: #555;">※チェック中は、コートのタップ位置に順次ボールの軌道が描画されます。プレイヤーのドラッグは無効になります。</span>
-                </div>
-            </div>
-
-            <div class="setting-group">
-                <strong>1. 守備の穴（ヒートマップ）可視化</strong>
-                <div class="radio-group" style="background: #f8f9fa; padding: 10px; border-radius: 5px;">
-                    <label><input type="radio" name="heatmap-type" value="none" checked> <strong>オフ</strong> (扇形・中心線を表示)</label>
-                    <label><input type="radio" name="heatmap-type" value="defensive"> <strong>オン</strong> (後衛の移動距離による危険度)</label>
-                </div>
-            </div>
             
-            <div class="setting-group">
-                <strong>2. 返球（パッシング）の可視化</strong>
-                <div class="radio-group" style="font-size: 13px;">
-                    <label><input type="checkbox" id="show-return-angle"> 自陣後衛からの返球アングルを表示</label>
+            <div class="setting-group" style="background: #ECEFF1; padding: 15px; border-radius: 6px; border: 1px solid #CFD8DC;">
+                <strong style="color: #37474F; font-size: 16px;">★ 視点操作</strong>
+                <div class="radio-group">
+                    <button id="flip-court-btn" class="btn" style="background-color: #37474F; width: 100%;">🔁 相手視点へ反転</button>
+                </div>
+            </div>
+
+            <div class="setting-group" style="background: #ffebee; padding: 15px; border-radius: 6px; border: 1px solid #ffcdd2;">
+                <strong style="color: #c2185b; font-size: 16px;">★ 空想ラリー（ボールの軌道）</strong>
+                <div class="radio-group">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="rally-mode-checkbox"> <strong>画面タッチでボール軌跡を記録する</strong>
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="toggle-rally-display" checked> 軌跡（矢印）を表示する
+                    </label>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="undo-rally-btn" class="btn btn-blue" style="flex: 1;" disabled>← 戻す</button>
+                        <button id="redo-rally-btn" class="btn btn-cyan" style="flex: 1;" disabled>進む →</button>
+                    </div>
+                    <button id="clear-rally-btn" class="btn" style="width: 100%;">軌跡を全クリア</button>
+                </div>
+            </div>
+
+            <div class="setting-group" style="background: #E0F7FA; padding: 15px; border-radius: 6px; border: 1px solid #B2EBF2;">
+                <strong style="color: #006064; font-size: 16px;">★ 陣形の記録と総合アニメーション</strong>
+                <div class="radio-group">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="toggle-ghost-display" checked> <strong>プレイヤーの過去位置を表示</strong>
+                    </label>
+                    <button id="snapshot-btn" class="btn btn-cyan">ここでの配置を確定 (①,②...)</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="undo-snapshot-btn" class="btn btn-blue" style="flex: 1;" disabled>← 戻す</button>
+                        <button id="redo-snapshot-btn" class="btn btn-cyan" style="flex: 1;" disabled>進む →</button>
+                    </div>
+                    <button id="play-animation-btn" class="btn btn-green" disabled>▶ アニメーション再生 (ラリー＆陣形)</button>
+                    <button id="clear-snapshots-btn" class="btn btn-red" style="width: 100%;">記録を全クリア</button>
+                </div>
+            </div>
+
+            <div class="setting-group" style="background: #E8F5E9; padding: 15px; border-radius: 6px; border: 1px solid #C8E6C9;">
+                <strong style="color: #2E7D32; font-size: 16px;">★ 戦術データベース (Save/Load)</strong>
+                <div class="radio-group">
+                    <input type="text" id="tactic-name" placeholder="戦術名を入力" style="padding: 10px; width: 100%; box-sizing: border-box; border-radius: 4px; border: 1px solid #ccc; font-size: 14px;">
+                    <button id="save-tactic-btn" class="btn btn-green">現在の状態を保存</button>
+                    <hr style="border-top: 1px dashed #A5D6A7; margin: 10px 0;">
+                    <select id="saved-tactics-list" style="padding: 10px; width: 100%; box-sizing: border-box; border-radius: 4px; border: 1px solid #ccc; font-size: 14px;"></select>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="load-tactic-btn" class="btn btn-orange" style="flex: 2;">読み込む</button>
+                        <button id="delete-tactic-btn" class="btn btn-red" style="flex: 1;">削除</button>
+                    </div>
                 </div>
             </div>
 
             <div class="setting-group">
-                <strong>3. 想定ライン設定（相手の攻撃範囲）</strong>
-                <div class="radio-group">
-                    <label><input type="radio" name="court-type" value="doubles" checked> ストローク (ダブルス全幅)</label>
-                    <label><input type="radio" name="court-type" value="serve-deuce"> サーブ (デュース)</label>
-                    <label><input type="radio" name="court-type" value="serve-ad"> サーブ (アド)</label>
+                <strong style="font-size: 16px;">1. ルール設定 (シングルス/ダブルス統合)</strong>
+                <div class="radio-group" style="background: #f0f0f0; padding: 12px; border-radius: 5px; border: 1px solid #ddd;">
+                    <label><input type="radio" name="court-type" value="doubles" checked> <strong>ストローク戦 (ダブルス)</strong></label>
+                    <label><input type="radio" name="court-type" value="singles"> <strong>ストローク戦 (シングルス)</strong></label>
+                    <hr style="border-top: 1px solid #ccc; margin: 5px 0;">
+                    <label><input type="radio" name="court-type" value="serve-deuce"> サーブ (デュースサイドへ)</label>
+                    <label><input type="radio" name="court-type" value="serve-ad"> サーブ (アドサイドへ)</label>
+                    <label><input type="checkbox" id="spin-effect"> サーブ時外側へ逃げるスピンを加味</label>
                 </div>
             </div>
+
             <div class="setting-group">
-                <strong>4. 前衛のカバー・プレッシャー</strong>
-                <div class="radio-group">
-                    <label>味方(赤) カバー半径: <span id="net-range-value">1.8</span>m</label>
-                    <input type="range" id="net-player-range" min="0" max="4" step="0.1" value="1.8" style="width: 100%;">
+                <strong style="font-size: 16px;">2. 守備の穴と幾何学ガイド（可視化）</strong>
+                <div class="radio-group" style="background: #f8f9fa; padding: 12px; border-radius: 5px; border: 1px solid #eee;">
+                    <label class="toggle-label" style="background: #fff3e0; border-color: #ffcc80;">
+                        <input type="checkbox" id="toggle-fan-display" checked> <strong style="color: #ef6c00;">相手の攻撃範囲を表示</strong>
+                    </label>
+                    <hr style="border-top: 1px solid #ddd; margin: 5px 0;">
+                    <label><input type="radio" name="heatmap-type" value="none" checked> ヒートマップ: オフ</label>
+                    <label><input type="radio" name="heatmap-type" value="defensive"> <strong>ヒートマップ: オン (危険度)</strong></label>
                 </div>
+            </div>
+
+            <div class="setting-group" id="net-player-settings">
+                <strong style="font-size: 16px;">3. 前衛のプレッシャー半径 (ダブルス用)</strong>
                 <div class="radio-group">
-                    <label>敵陣(青) 警戒半径: <span id="opp-net-range-value">1.8</span>m</label>
+                    <label>味方前衛(赤): <span id="net-range-value">1.8</span>m</label>
+                    <input type="range" id="net-player-range" min="0" max="4" step="0.1" value="1.8" style="width: 100%;">
+                    <label>敵陣前衛(青): <span id="opp-net-range-value">1.8</span>m</label>
                     <input type="range" id="opp-net-player-range" min="0" max="4" step="0.1" value="1.8" style="width: 100%;">
                 </div>
             </div>
             
             <div class="setting-group">
-                <strong>5. アングルショットの限界拡張</strong>
+                <strong style="font-size: 16px;">4. 返球アングルの可視化</strong>
+                <div class="radio-group">
+                    <label class="toggle-label"><input type="checkbox" id="show-return-angle"> 自分からの返球軌道を表示</label>
+                </div>
+            </div>
+            
+            <div class="setting-group">
+                <strong style="font-size: 16px;">5. アングルショット（スピン）の限界</strong>
                 <div class="radio-group">
                     <label>サイドへの拡張幅: <span id="angle-shot-value">0.0</span>m</label>
                     <input type="range" id="angle-shot-range" min="0" max="4" step="0.5" value="0.0" style="width: 100%;">
@@ -159,24 +250,60 @@
     </div>
 
     <script>
+        const flipCourtBtn = document.getElementById('flip-court-btn');
+        const courtContainer = document.getElementById('court-container');
+
+        flipCourtBtn.addEventListener('click', () => {
+            courtContainer.classList.toggle('rotated');
+            if(courtContainer.classList.contains('rotated')) {
+                flipCourtBtn.innerText = '🔁 自陣視点へ戻す';
+            } else {
+                flipCourtBtn.innerText = '🔁 相手視点へ反転';
+            }
+        });
+
         const svg = document.querySelector('svg');
         const players = document.querySelectorAll('.player');
         const radioButtonsCourt = document.querySelectorAll('input[name="court-type"]');
         const radioButtonsHeatmap = document.querySelectorAll('input[name="heatmap-type"]');
         const returnCheckbox = document.getElementById('show-return-angle');
+        const spinCheckbox = document.getElementById('spin-effect');
+        const angleShotSlider = document.getElementById('angle-shot-range');
+        const angleShotValueSpan = document.getElementById('angle-shot-value');
         
+        // ★ 前衛スライダー要素
         const netRangeSlider = document.getElementById('net-player-range');
         const netRangeValueSpan = document.getElementById('net-range-value');
         const oppNetRangeSlider = document.getElementById('opp-net-player-range');
         const oppNetRangeValueSpan = document.getElementById('opp-net-range-value');
-        
-        const angleShotSlider = document.getElementById('angle-shot-range');
-        const angleShotValueSpan = document.getElementById('angle-shot-value');
+        const netPlayerSettings = document.getElementById('net-player-settings');
+
+        const toggleRallyDisplay = document.getElementById('toggle-rally-display');
+        const toggleGhostDisplay = document.getElementById('toggle-ghost-display');
+        const toggleFanDisplay = document.getElementById('toggle-fan-display'); 
+        const rallyTraceLayer = document.getElementById('rally-trace-layer');
+        const ghostLayer = document.getElementById('player-ghost-layer');
+        const geometryGuides = document.getElementById('geometry-guides'); 
+
+        toggleRallyDisplay.addEventListener('change', (e) => { rallyTraceLayer.style.display = e.target.checked ? 'block' : 'none'; });
+        toggleGhostDisplay.addEventListener('change', (e) => { ghostLayer.style.display = e.target.checked ? 'block' : 'none'; });
+        toggleFanDisplay.addEventListener('change', updateTactics); 
 
         const rallyModeCheckbox = document.getElementById('rally-mode-checkbox');
         const clearRallyBtn = document.getElementById('clear-rally-btn');
-        const rallyTraceLayer = document.getElementById('rally-trace-layer');
+        const undoRallyBtn = document.getElementById('undo-rally-btn');
+        const redoRallyBtn = document.getElementById('redo-rally-btn');
         let rallyPoints = [];
+        let rallyRedoStack = [];
+
+        const snapshotBtn = document.getElementById('snapshot-btn');
+        const undoSnapshotBtn = document.getElementById('undo-snapshot-btn');
+        const redoSnapshotBtn = document.getElementById('redo-snapshot-btn');
+        const clearSnapshotsBtn = document.getElementById('clear-snapshots-btn');
+        const playAnimationBtn = document.getElementById('play-animation-btn');
+        let playerHistory = []; 
+        let playerRedoStack = [];
+        let isAnimating = false;
 
         let selectedPlayer = null;
         let offset = { x: 0, y: 0 };
@@ -188,47 +315,33 @@
         for (let x = 0; x <= 11; x += gridSize) {
             for (let y = 0; y <= 24; y += gridSize) {
                 const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                rect.setAttribute('x', x);
-                rect.setAttribute('y', y);
-                rect.setAttribute('width', gridSize + 0.05);
-                rect.setAttribute('height', gridSize + 0.05);
+                rect.setAttribute('x', x); rect.setAttribute('y', y);
+                rect.setAttribute('width', gridSize + 0.05); rect.setAttribute('height', gridSize + 0.05);
                 rect.setAttribute('fill', 'transparent');
                 heatmapLayer.appendChild(rect);
                 gridCells.push({ x: x + gridSize / 2, y: y + gridSize / 2, rect: rect });
             }
         }
 
+        // マウス・タッチイベント (iPad対応)
         svg.addEventListener('mousedown', handleCourtInteraction);
         svg.addEventListener('touchstart', handleCourtInteraction, {passive: false});
-
-        radioButtonsCourt.forEach(radio => radio.addEventListener('change', updateTactics));
-        radioButtonsHeatmap.forEach(radio => radio.addEventListener('change', updateTactics));
-        returnCheckbox.addEventListener('change', updateTactics);
-        
-        netRangeSlider.addEventListener('input', (e) => {
-            netRangeValueSpan.innerText = e.target.value;
-            updateTactics();
-        });
-        oppNetRangeSlider.addEventListener('input', (e) => {
-            oppNetRangeValueSpan.innerText = e.target.value;
-            updateTactics();
-        });
-        angleShotSlider.addEventListener('input', (e) => {
-            angleShotValueSpan.innerText = e.target.value;
-            updateTactics();
-        });
-
-        clearRallyBtn.addEventListener('click', () => {
-            rallyPoints = [];
-            drawRally();
-        });
-
         svg.addEventListener('mousemove', drag);
         svg.addEventListener('touchmove', drag, {passive: false});
         svg.addEventListener('mouseup', endDrag);
         svg.addEventListener('touchend', endDrag);
         svg.addEventListener('touchcancel', endDrag);
         svg.addEventListener('mouseleave', endDrag);
+
+        radioButtonsCourt.forEach(radio => radio.addEventListener('change', updateTactics));
+        radioButtonsHeatmap.forEach(radio => radio.addEventListener('change', updateTactics));
+        returnCheckbox.addEventListener('change', updateTactics);
+        spinCheckbox.addEventListener('change', updateTactics);
+        angleShotSlider.addEventListener('input', (e) => { angleShotValueSpan.innerText = e.target.value; updateTactics(); });
+        
+        // ★ 前衛スライダーのイベント
+        netRangeSlider.addEventListener('input', (e) => { netRangeValueSpan.innerText = e.target.value; updateTactics(); });
+        oppNetRangeSlider.addEventListener('input', (e) => { oppNetRangeValueSpan.innerText = e.target.value; updateTactics(); });
 
         function getMousePosition(evt) {
             const CTM = svg.getScreenCTM();
@@ -237,35 +350,37 @@
             return { x: (clientX - CTM.e) / CTM.a, y: (clientY - CTM.f) / CTM.d };
         }
 
-      // 【重要】当たり判定を「直接タッチ」から「距離によるマグネット吸着」に変更
+        function checkAnimationBtn() {
+            playAnimationBtn.disabled = (playerHistory.length < 2 && rallyPoints.length < 2);
+        }
+
         function handleCourtInteraction(evt) {
             if(evt.type === 'touchstart') evt.preventDefault(); 
+            if(isAnimating) return; 
             
             const mousePos = getMousePosition(evt);
             
-            // ラリー記録モード中は、問答無用で軌跡を追加
             if (rallyModeCheckbox.checked) {
                 rallyPoints.push(mousePos);
+                rallyRedoStack = []; 
+                updateRallyButtons();
                 drawRally();
                 return;
             }
 
-            // ドラッグモード（通常時）：半径1.5m以内にいる一番近いプレイヤーを探す
             let closestPlayer = null;
-            let minDistance = 1.5; // 吸着（マグネット）の範囲を1.5mとする
+            let minDistance = 1.5; 
 
             players.forEach(player => {
+                // 非表示になっている前衛は掴めないようにする
+                if(player.getAttribute('visibility') === 'hidden') return;
+
                 const px = parseFloat(player.getAttribute('cx'));
                 const py = parseFloat(player.getAttribute('cy'));
                 const dist = Math.hypot(px - mousePos.x, py - mousePos.y);
-                
-                if (dist < minDistance) {
-                    minDistance = dist;
-                    closestPlayer = player;
-                }
+                if (dist < minDistance) { minDistance = dist; closestPlayer = player; }
             });
 
-            // 近くにプレイヤーが見つかったら、それを「掴んだ」と判定する
             if (closestPlayer) {
                 selectedPlayer = closestPlayer;
                 offset.x = mousePos.x - parseFloat(selectedPlayer.getAttribute('cx'));
@@ -274,7 +389,7 @@
         }
 
         function drag(evt) {
-            if (selectedPlayer) {
+            if (selectedPlayer && !isAnimating) {
                 if(evt.type === 'touchmove') evt.preventDefault();
                 const mousePos = getMousePosition(evt);
                 selectedPlayer.setAttribute('cx', mousePos.x - offset.x);
@@ -285,87 +400,307 @@
 
         function endDrag(evt) { selectedPlayer = null; }
 
+        function updateRallyButtons() {
+            undoRallyBtn.disabled = rallyPoints.length === 0;
+            redoRallyBtn.disabled = rallyRedoStack.length === 0;
+            checkAnimationBtn();
+        }
+
+        undoRallyBtn.addEventListener('click', () => {
+            if (rallyPoints.length > 0) { rallyRedoStack.push(rallyPoints.pop()); updateRallyButtons(); drawRally(); }
+        });
+        redoRallyBtn.addEventListener('click', () => {
+            if (rallyRedoStack.length > 0) { rallyPoints.push(rallyRedoStack.pop()); updateRallyButtons(); drawRally(); }
+        });
+        clearRallyBtn.addEventListener('click', () => { rallyPoints = []; rallyRedoStack = []; updateRallyButtons(); drawRally(); });
 
         function drawRally() {
             rallyTraceLayer.innerHTML = ''; 
-            
             for (let i = 0; i < rallyPoints.length; i++) {
                 const pt = rallyPoints[i];
-                
                 const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                circle.setAttribute('cx', pt.x);
-                circle.setAttribute('cy', pt.y);
-                circle.setAttribute('r', 0.25);
-                circle.setAttribute('fill', '#E91E63');
+                circle.setAttribute('cx', pt.x); circle.setAttribute('cy', pt.y);
+                circle.setAttribute('r', 0.25); circle.setAttribute('fill', '#E91E63');
                 rallyTraceLayer.appendChild(circle);
                 
                 const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('x', pt.x + 0.35);
-                text.setAttribute('y', pt.y - 0.35);
-                text.setAttribute('fill', '#C2185B');
-                text.setAttribute('font-size', '0.7');
-                text.setAttribute('font-weight', 'bold');
-                text.textContent = i + 1;
+                text.setAttribute('x', pt.x + 0.35); text.setAttribute('y', pt.y - 0.35);
+                text.setAttribute('fill', '#C2185B'); text.setAttribute('font-size', '0.7');
+                text.setAttribute('font-weight', 'bold'); text.textContent = i + 1;
                 rallyTraceLayer.appendChild(text);
 
                 if (i > 0) {
                     const prev = rallyPoints[i - 1];
                     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    line.setAttribute('x1', prev.x);
-                    line.setAttribute('y1', prev.y);
-                    line.setAttribute('x2', pt.x);
-                    line.setAttribute('y2', pt.y);
-                    line.setAttribute('stroke', '#E91E63');
-                    line.setAttribute('stroke-width', '0.08');
-                    line.setAttribute('stroke-dasharray', '0.3 0.3');
-                    line.setAttribute('marker-end', 'url(#arrowhead)');
-                    
+                    line.setAttribute('x1', prev.x); line.setAttribute('y1', prev.y);
+                    line.setAttribute('x2', pt.x); line.setAttribute('y2', pt.y);
+                    line.setAttribute('stroke', '#E91E63'); line.setAttribute('stroke-width', '0.08');
+                    line.setAttribute('stroke-dasharray', '0.3 0.3'); line.setAttribute('marker-end', 'url(#arrowhead)');
                     rallyTraceLayer.insertBefore(line, circle);
                 }
             }
         }
 
-        function updateTactics() {
-            const oppNode = document.getElementById('player-opp-base');
-            const px = parseFloat(oppNode.getAttribute('cx'));
-            const py = parseFloat(oppNode.getAttribute('cy'));
-            const mx = parseFloat(document.getElementById('player-me-base').getAttribute('cx'));
-            const my = parseFloat(document.getElementById('player-me-base').getAttribute('cy'));
-            
-            const meNetNode = document.getElementById('player-me-net');
-            const nx = parseFloat(meNetNode.getAttribute('cx'));
-            const ny = parseFloat(meNetNode.getAttribute('cy'));
-            const nr = parseFloat(netRangeSlider.value);
+        function updateGhostButtons() {
+            undoSnapshotBtn.disabled = playerHistory.length === 0;
+            redoSnapshotBtn.disabled = playerRedoStack.length === 0;
+            checkAnimationBtn();
+        }
 
-            const oppNetNode = document.getElementById('player-opp-net');
-            const onx = parseFloat(oppNetNode.getAttribute('cx'));
-            const ony = parseFloat(oppNetNode.getAttribute('cy'));
-            const onr = parseFloat(oppNetRangeSlider.value);
+        function getCurrentPlayerPositions() {
+            let positions = {};
+            players.forEach(player => { positions[player.id] = { x: parseFloat(player.getAttribute('cx')), y: parseFloat(player.getAttribute('cy')) }; });
+            return positions;
+        }
 
-            const angleExp = parseFloat(angleShotSlider.value);
+        snapshotBtn.addEventListener('click', () => {
+            playerHistory.push(getCurrentPlayerPositions()); playerRedoStack = []; updateGhostButtons(); drawGhosts();
+        });
 
-            const netCoverCircle = document.getElementById('net-player-cover');
-            const maskNetCircle = document.getElementById('mask-net-circle');
-            [netCoverCircle, maskNetCircle].forEach(circle => {
-                circle.setAttribute('cx', nx); circle.setAttribute('cy', ny); circle.setAttribute('r', nr);
+        undoSnapshotBtn.addEventListener('click', () => {
+            if (playerHistory.length > 0) {
+                playerRedoStack.push(playerHistory.pop());
+                let targetPositions = playerHistory.length > 0 ? playerHistory[playerHistory.length - 1] : { 
+                    "player-me-base": {x: 8, y: 22}, "player-opp-base": {x: 3, y: 2},
+                    "player-me-net": {x: 3, y: 14}, "player-opp-net": {x: 8, y: 9}
+                };
+                for (const id in targetPositions) {
+                    const node = document.getElementById(id);
+                    if(node) { node.setAttribute('cx', targetPositions[id].x); node.setAttribute('cy', targetPositions[id].y); }
+                }
+                updateGhostButtons(); drawGhosts(); updateTactics(); 
+            }
+        });
+
+        redoSnapshotBtn.addEventListener('click', () => {
+            if (playerRedoStack.length > 0) {
+                const nextState = playerRedoStack.pop(); playerHistory.push(nextState);
+                for (const id in nextState) {
+                    const node = document.getElementById(id);
+                    if(node) { node.setAttribute('cx', nextState[id].x); node.setAttribute('cy', nextState[id].y); }
+                }
+                updateGhostButtons(); drawGhosts(); updateTactics(); 
+            }
+        });
+
+        clearSnapshotsBtn.addEventListener('click', () => { playerHistory = []; playerRedoStack = []; updateGhostButtons(); drawGhosts(); });
+
+        const NumberToMaru = ["", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
+        
+        function drawGhosts() {
+            ghostLayer.innerHTML = ''; 
+            const courtType = document.querySelector('input[name="court-type"]:checked').value;
+            const isSingles = courtType === 'singles';
+
+            playerHistory.forEach((stepPositions, index) => {
+                const numberStr = NumberToMaru[index + 1] || (index + 1);
+                for (const playerId in stepPositions) {
+                    // シングルス時は前衛のゴーストを描画しない
+                    if (isSingles && (playerId === 'player-me-net' || playerId === 'player-opp-net')) continue;
+
+                    const pos = stepPositions[playerId];
+                    const isRed = document.getElementById(playerId).getAttribute('fill') === '#FF5252';
+
+                    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    group.setAttribute('opacity', 0.25); 
+
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', pos.x); circle.setAttribute('cy', pos.y);
+                    circle.setAttribute('r', 0.4); circle.setAttribute('fill', isRed ? '#FF8A80' : '#82B1FF'); 
+                    circle.setAttribute('stroke', 'white'); circle.setAttribute('stroke-width', 0.03);
+                    group.appendChild(circle);
+
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', pos.x); text.setAttribute('y', pos.y + 0.15); 
+                    text.setAttribute('font-size', '0.5'); text.setAttribute('font-weight', 'bold');
+                    text.setAttribute('fill', isRed ? '#b71c1c' : '#0d47a1'); text.setAttribute('text-anchor', 'middle'); text.textContent = numberStr;
+                    group.appendChild(text);
+
+                    ghostLayer.appendChild(group);
+                }
+            });
+        }
+
+        playAnimationBtn.addEventListener('click', async () => {
+            if ((playerHistory.length < 2 && rallyPoints.length < 2) || isAnimating) return;
+            isAnimating = true;
+
+            const animDuration = 800; 
+            const intervalTime = 200; 
+
+            const animatePlayers = () => new Promise(resolve => {
+                if (playerHistory.length < 2) return resolve();
+                let step = 0;
+                for (const id in playerHistory[0]) {
+                    const node = document.getElementById(id);
+                    if(node) { node.setAttribute('cx', playerHistory[0][id].x); node.setAttribute('cy', playerHistory[0][id].y); }
+                }
+                updateTactics();
+
+                function nextStep() {
+                    if (step >= playerHistory.length - 1) return resolve();
+                    const startPos = playerHistory[step]; const endPos = playerHistory[step + 1];
+                    let startTime = null; 
+
+                    function frame(time) {
+                        if (!startTime) startTime = time;
+                        let progress = (time - startTime) / animDuration;
+                        if (progress > 1) progress = 1;
+                        
+                        const ease = progress < .5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+
+                        for (const id in startPos) {
+                            const node = document.getElementById(id);
+                            if(node) {
+                                const cx = startPos[id].x + (endPos[id].x - startPos[id].x) * ease;
+                                const cy = startPos[id].y + (endPos[id].y - startPos[id].y) * ease;
+                                node.setAttribute('cx', cx); node.setAttribute('cy', cy);
+                            }
+                        }
+                        updateTactics();
+
+                        if (progress < 1) requestAnimationFrame(frame);
+                        else { step++; setTimeout(nextStep, intervalTime); }
+                    }
+                    requestAnimationFrame(frame);
+                }
+                setTimeout(nextStep, 500); 
             });
 
-            const oppNetCoverCircle = document.getElementById('opp-net-cover');
-            oppNetCoverCircle.setAttribute('cx', onx);
-            oppNetCoverCircle.setAttribute('cy', ony);
-            oppNetCoverCircle.setAttribute('r', onr);
+            const animateRallyTrace = () => new Promise(resolve => {
+                if (rallyPoints.length < 2) return resolve();
+                rallyTraceLayer.innerHTML = ''; 
+                
+                function drawPoint(pt, index) {
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', pt.x); circle.setAttribute('cy', pt.y); circle.setAttribute('r', 0.25); circle.setAttribute('fill', '#E91E63');
+                    rallyTraceLayer.appendChild(circle);
+                    
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', pt.x + 0.35); text.setAttribute('y', pt.y - 0.35); text.setAttribute('fill', '#C2185B'); text.setAttribute('font-size', '0.7');
+                    text.setAttribute('font-weight', 'bold'); text.textContent = index + 1;
+                    rallyTraceLayer.appendChild(text);
+                }
+                drawPoint(rallyPoints[0], 0);
 
+                let step = 0;
+                function nextStep() {
+                    if (step >= rallyPoints.length - 1) return resolve();
+                    const startPos = rallyPoints[step]; const endPos = rallyPoints[step + 1];
+                    let startTime = null; 
+
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', startPos.x); line.setAttribute('y1', startPos.y); line.setAttribute('x2', startPos.x); line.setAttribute('y2', startPos.y);
+                    line.setAttribute('stroke', '#E91E63'); line.setAttribute('stroke-width', '0.08'); line.setAttribute('stroke-dasharray', '0.3 0.3'); line.setAttribute('marker-end', 'url(#arrowhead)');
+                    rallyTraceLayer.insertBefore(line, rallyTraceLayer.firstChild);
+
+                    function frame(time) {
+                        if (!startTime) startTime = time;
+                        let progress = (time - startTime) / animDuration;
+                        if (progress > 1) progress = 1;
+                        
+                        const ease = progress < .5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+                        
+                        const currentX = startPos.x + (endPos.x - startPos.x) * ease;
+                        const currentY = startPos.y + (endPos.y - startPos.y) * ease;
+                        
+                        line.setAttribute('x2', currentX); line.setAttribute('y2', currentY);
+
+                        if (progress < 1) requestAnimationFrame(frame);
+                        else { drawPoint(endPos, step + 1); step++; setTimeout(nextStep, intervalTime); }
+                    }
+                    requestAnimationFrame(frame);
+                }
+                setTimeout(nextStep, 500); 
+            });
+
+            await Promise.all([animatePlayers(), animateRallyTrace()]);
+            drawRally(); isAnimating = false;
+        });
+
+        const saveBtn = document.getElementById('save-tactic-btn'); const loadBtn = document.getElementById('load-tactic-btn'); const deleteBtn = document.getElementById('delete-tactic-btn');
+        const tacticNameInput = document.getElementById('tactic-name'); const savedList = document.getElementById('saved-tactics-list');
+
+        function loadSavedTacticsList() {
+            const saved = JSON.parse(localStorage.getItem('tennis_master_tactics') || '{}');
+            savedList.innerHTML = '<option value="">-- 保存された戦術を選択 --</option>';
+            for (const name in saved) {
+                const option = document.createElement('option'); option.value = name; option.textContent = name; savedList.appendChild(option);
+            }
+        }
+
+        saveBtn.addEventListener('click', () => {
+            const name = tacticNameInput.value.trim(); if (!name) { alert("保存する戦術の名前を入力してください。"); return; }
+            const tacticData = {
+                players: getCurrentPlayerPositions(),
+                settings: { 
+                    courtType: document.querySelector('input[name="court-type"]:checked').value, 
+                    heatmapType: document.querySelector('input[name="heatmap-type"]:checked').value, 
+                    showReturnAngle: returnCheckbox.checked, 
+                    spinEffect: spinCheckbox.checked, 
+                    angleShot: angleShotSlider.value,
+                    showFanDisplay: toggleFanDisplay.checked,
+                    netRange: netRangeSlider.value,
+                    oppNetRange: oppNetRangeSlider.value
+                },
+                rally: JSON.parse(JSON.stringify(rallyPoints)), playerHistory: JSON.parse(JSON.stringify(playerHistory))
+            };
+            const saved = JSON.parse(localStorage.getItem('tennis_master_tactics') || '{}');
+            saved[name] = tacticData; localStorage.setItem('tennis_master_tactics', JSON.stringify(saved));
+            tacticNameInput.value = ''; loadSavedTacticsList(); alert(`戦術「${name}」を保存しました。`);
+        });
+
+        loadBtn.addEventListener('click', () => {
+            const name = savedList.value; if (!name) return;
+            const saved = JSON.parse(localStorage.getItem('tennis_master_tactics') || '{}'); const data = saved[name]; if (!data) return;
+            for (const id in data.players) { const node = document.getElementById(id); if(node) { node.setAttribute('cx', data.players[id].x); node.setAttribute('cy', data.players[id].y); } }
+            document.querySelector(`input[name="court-type"][value="${data.settings.courtType}"]`).checked = true;
+            document.querySelector(`input[name="heatmap-type"][value="${data.settings.heatmapType}"]`).checked = true;
+            returnCheckbox.checked = data.settings.showReturnAngle; spinCheckbox.checked = data.settings.spinEffect || false;
+            angleShotSlider.value = data.settings.angleShot; angleShotValueSpan.innerText = data.settings.angleShot;
+            if (data.settings.showFanDisplay !== undefined) toggleFanDisplay.checked = data.settings.showFanDisplay;
+            if (data.settings.netRange) { netRangeSlider.value = data.settings.netRange; netRangeValueSpan.innerText = data.settings.netRange; }
+            if (data.settings.oppNetRange) { oppNetRangeSlider.value = data.settings.oppNetRange; oppNetRangeValueSpan.innerText = data.settings.oppNetRange; }
+
+            rallyPoints = data.rally || []; rallyRedoStack = []; updateRallyButtons(); drawRally();
+            playerHistory = data.playerHistory || []; playerRedoStack = []; updateGhostButtons(); drawGhosts();
+            updateTactics();
+        });
+
+        deleteBtn.addEventListener('click', () => {
+            const name = savedList.value; if (!name) return;
+            if (confirm(`戦術「${name}」を削除してもよろしいですか？`)) {
+                const saved = JSON.parse(localStorage.getItem('tennis_master_tactics') || '{}');
+                delete saved[name]; localStorage.setItem('tennis_master_tactics', JSON.stringify(saved)); loadSavedTacticsList();
+            }
+        });
+        loadSavedTacticsList();
+
+        function updateTactics() {
             const courtType = document.querySelector('input[name="court-type"]:checked').value;
+            const isSingles = courtType === 'singles';
+
+            // ★ シングルス/ダブルス切り替えロジック
+            document.getElementById('player-me-net').setAttribute('visibility', isSingles ? 'hidden' : 'visible');
+            document.getElementById('player-opp-net').setAttribute('visibility', isSingles ? 'hidden' : 'visible');
+            document.getElementById('net-player-cover').setAttribute('visibility', isSingles ? 'hidden' : 'visible');
+            document.getElementById('opp-net-cover').setAttribute('visibility', isSingles ? 'hidden' : 'visible');
+            netPlayerSettings.style.display = isSingles ? 'none' : 'block';
+
+            const oppNode = document.getElementById('player-opp-base'); const px = parseFloat(oppNode.getAttribute('cx')); const py = parseFloat(oppNode.getAttribute('cy'));
+            const mx = parseFloat(document.getElementById('player-me-base').getAttribute('cx')); const my = parseFloat(document.getElementById('player-me-base').getAttribute('cy'));
+            
+            const nx = parseFloat(document.getElementById('player-me-net').getAttribute('cx')); const ny = parseFloat(document.getElementById('player-me-net').getAttribute('cy')); const nr = parseFloat(netRangeSlider.value);
+            const onx = parseFloat(document.getElementById('player-opp-net').getAttribute('cx')); const ony = parseFloat(document.getElementById('player-opp-net').getAttribute('cy')); const onr = parseFloat(oppNetRangeSlider.value);
+
+            const angleExp = parseFloat(angleShotSlider.value);
+            const hasSpin = spinCheckbox.checked; const spinOffset = 1.5; 
             let ax, bx, ay, by;
 
-            // 「singles」の分岐を削除し、ダブルスかサーブかの分岐のみに整理
-            if (courtType === 'serve-deuce') {
-                ax = 5.485 - angleExp; bx = 9.60 + angleExp; ay = 18.285; by = 18.285;
-            } else if (courtType === 'serve-ad') {
-                ax = 1.37 - angleExp; bx = 5.485 + angleExp; ay = 18.285; by = 18.285;
-            } else { // doubles (デフォルト)
-                ax = 0.00 - angleExp; bx = 10.97 + angleExp; ay = 23.77; by = 23.77;
-            }
+            if (isSingles) { ax = 1.37 - angleExp; bx = 9.60 + angleExp; ay = 23.77; by = 23.77; } 
+            else if (courtType === 'serve-deuce') { ax = 5.485 - angleExp; bx = 9.60 + (hasSpin ? spinOffset : 0) + angleExp; ay = 18.285; by = 18.285; } 
+            else if (courtType === 'serve-ad') { ax = 1.37 - (hasSpin ? spinOffset : 0) - angleExp; bx = 5.485 + angleExp; ay = 18.285; by = 18.285; }
+            else { ax = 0.00 - angleExp; bx = 10.97 + angleExp; ay = 23.77; by = 23.77; } // ダブルス
 
             const targetLine = document.getElementById('target-line');
             targetLine.setAttribute('x1', ax); targetLine.setAttribute('y1', ay);
@@ -377,95 +712,65 @@
             const fan = document.getElementById('fan-area');
             fan.setAttribute('points', `${px},${py} ${ext_ax},${ext_ay} ${ext_bx},${ext_by}`);
 
-            const vecPA_x = ax - px; const vecPA_y = ay - py;
-            const lenPA = Math.hypot(vecPA_x, vecPA_y);
-            const vecPB_x = bx - px; const vecPB_y = by - py;
-            const lenPB = Math.hypot(vecPB_x, vecPB_y);
+            // マスクの制御
+            const maskNetCircle = document.getElementById('mask-net-circle');
+            maskNetCircle.setAttribute('cx', nx); maskNetCircle.setAttribute('cy', ny); maskNetCircle.setAttribute('r', isSingles ? 0 : nr);
+            
+            const netCoverCircle = document.getElementById('net-player-cover');
+            netCoverCircle.setAttribute('cx', nx); netCoverCircle.setAttribute('cy', ny); netCoverCircle.setAttribute('r', nr);
+            const oppNetCoverCircle = document.getElementById('opp-net-cover');
+            oppNetCoverCircle.setAttribute('cx', onx); oppNetCoverCircle.setAttribute('cy', ony); oppNetCoverCircle.setAttribute('r', onr);
 
-            const dirX = (vecPA_x / lenPA) + (vecPB_x / lenPB);
-            const dirY = (vecPA_y / lenPA) + (vecPB_y / lenPB);
+            const vecPA_x = ax - px; const vecPA_y = ay - py; const lenPA = Math.hypot(vecPA_x, vecPA_y);
+            const vecPB_x = bx - px; const vecPB_y = by - py; const lenPB = Math.hypot(vecPB_x, vecPB_y);
+            const dirX = (vecPA_x / lenPA) + (vecPB_x / lenPB); const dirY = (vecPA_y / lenPA) + (vecPB_y / lenPB);
             const centerLine = document.getElementById('center-line');
-            centerLine.setAttribute('x1', px); centerLine.setAttribute('y1', py);
-            centerLine.setAttribute('x2', px + dirX * 40); centerLine.setAttribute('y2', py + dirY * 40);
+            centerLine.setAttribute('x1', px); centerLine.setAttribute('y1', py); centerLine.setAttribute('x2', px + dirX * 40); centerLine.setAttribute('y2', py + dirY * 40);
 
-            const showReturnAngle = returnCheckbox.checked;
-            const returnFan = document.getElementById('return-fan-area');
-
+            const showReturnAngle = returnCheckbox.checked; const returnFan = document.getElementById('return-fan-area');
             if (showReturnAngle) {
                 returnFan.style.display = 'block';
-                
-                // シングルス分岐を削除し、ダブルスの全幅のみに固定
-                const rax = 0.00 - angleExp;
-                const rbx = 10.97 + angleExp;
-                const ray = 0; const rby = 0;
-
-                const extR = 1.5;
-                const ext_rax = mx + (rax - mx) * extR;
-                const ext_ray = my + (ray - my) * extR;
-                const ext_rbx = mx + (rbx - mx) * extR;
-                const ext_rby = my + (rby - my) * extR;
-
+                const rax = isSingles ? 1.37 - angleExp : 0.00 - angleExp; 
+                const rbx = isSingles ? 9.60 + angleExp : 10.97 + angleExp; 
+                const ray = 0; const rby = 0; const extR = 1.5;
+                const ext_rax = mx + (rax - mx) * extR; const ext_ray = my + (ray - my) * extR;
+                const ext_rbx = mx + (rbx - mx) * extR; const ext_rby = my + (rby - my) * extR;
                 returnFan.setAttribute('points', `${mx},${my} ${ext_rax},${ext_ray} ${ext_rbx},${ext_rby}`);
-            } else {
-                returnFan.style.display = 'none';
-            }
+            } else { returnFan.style.display = 'none'; }
 
             const heatmapMode = document.querySelector('input[name="heatmap-type"]:checked').value;
-            
-            if (heatmapMode === 'none') {
-                heatmapLayer.style.display = 'none';
-                fan.style.display = 'block'; 
-            } else {
-                heatmapLayer.style.display = 'block';
-                fan.style.display = 'none'; 
+            const showFanGuide = toggleFanDisplay.checked;
 
+            if (heatmapMode === 'none') {
+                heatmapLayer.style.display = 'none'; 
+                geometryGuides.style.display = showFanGuide ? 'block' : 'none'; 
+            } else {
+                heatmapLayer.style.display = 'block'; 
+                geometryGuides.style.display = 'none'; 
+                
                 gridCells.forEach(cell => {
-                    if (cell.y < 11.885) { cell.rect.setAttribute('fill', 'transparent'); return; }
+                    if (isSingles && (cell.x < 1.37 || cell.x > 9.60)) { cell.rect.setAttribute('fill', 'transparent'); return; }
                     
-                    const distNet = Math.hypot(cell.x - nx, cell.y - ny);
-                    if (distNet <= nr) {
-                        cell.rect.setAttribute('fill', 'rgba(0, 200, 0, 0.4)');
+                    if (cell.y < 11.885) { 
+                        cell.rect.setAttribute('fill', 'transparent'); 
                     } else {
-                        const distBase = Math.hypot(cell.x - mx, cell.y - my);
-                        const danger = Math.max(0, Math.min(1, (distBase - 1.5) / 8)); 
-                        const r = Math.floor(255 * danger);
-                        const g = Math.floor(255 * (1 - danger));
-                        cell.rect.setAttribute('fill', `rgba(${r}, ${g}, 0, 0.5)`);
+                        const distNet = Math.hypot(cell.x - nx, cell.y - ny);
+                        if (!isSingles && distNet <= nr) {
+                            if (heatmapMode === 'defensive') cell.rect.setAttribute('fill', 'rgba(0, 200, 0, 0.4)');
+                        } else {
+                            const distBase = Math.hypot(cell.x - mx, cell.y - my);
+                            const danger = Math.max(0, Math.min(1, (distBase - (isSingles ? 1.0 : 1.5)) / (isSingles ? 9 : 8))); 
+                            if (heatmapMode === 'defensive') {
+                                const r = Math.floor(255 * danger); const g = Math.floor(255 * (1 - danger));
+                                cell.rect.setAttribute('fill', `rgba(${r}, ${g}, 0, 0.5)`);
+                            }
+                        }
                     }
                 });
             }
+            drawGhosts(); 
         }
-
         updateTactics();
-
-        const tabCourt = document.getElementById('tab-court');
-        const tabControls = document.getElementById('tab-controls');
-        const courtContainer = document.getElementById('court-container');
-        const controlPanel = document.getElementById('control-panel');
-
-        function switchMobileTab(target) {
-            if (window.innerWidth > 768) return; 
-            
-            if (target === 'court') {
-                tabCourt.classList.add('active'); tabControls.classList.remove('active');
-                courtContainer.classList.add('active-tab'); controlPanel.classList.remove('active-tab');
-            } else {
-                tabControls.classList.add('active'); tabCourt.classList.remove('active');
-                controlPanel.classList.add('active-tab'); courtContainer.classList.remove('active-tab');
-            }
-        }
-
-        tabCourt.addEventListener('click', () => switchMobileTab('court'));
-        tabControls.addEventListener('click', () => switchMobileTab('controls'));
-
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 768) {
-                courtContainer.style.display = 'block'; controlPanel.style.display = 'block';
-                courtContainer.classList.remove('active-tab'); controlPanel.classList.remove('active-tab');
-            } else {
-                switchMobileTab('court');
-            }
-        });
     </script>
 </body>
 </html>
