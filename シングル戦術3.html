@@ -12,7 +12,7 @@
         #mobile-tab-bar { display: none; }
 
         #court-container { flex: 0 0 auto; height: 100%; aspect-ratio: 16.97 / 29.77; background-color: #2E7D32; box-shadow: 0 4px 12px rgba(0,0,0,0.2); position: relative; }
-        svg { width: 100%; height: 100%; user-select: none; -webkit-user-select: none; }
+        svg { width: 100%; height: 100%; user-select: none; -webkit-user-select: none; touch-action: none; } /* タッチ時の画面スクロールを防止 */
         .player { cursor: pointer; }
 
         #control-panel { flex: 1 1 320px; background: rgba(255, 255, 255, 0.9); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 14px; box-sizing: border-box; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
@@ -111,7 +111,7 @@
                 <strong>1. 守備の穴（ヒートマップ）可視化</strong>
                 <div class="radio-group" style="background: #f8f9fa; padding: 10px; border-radius: 5px;">
                     <label><input type="radio" name="heatmap-type" value="none" checked> <strong>オフ</strong> (扇形・中心線を表示)</label>
-                    <label><input type="radio" name="heatmap-type" value="defensive"> <strong>オン</strong> (移動距離の危険度)</label>
+                    <label><input type="radio" name="heatmap-type" value="defensive"> <strong>オン</strong> (移動距離の危険度: 赤＝届かない)</label>
                 </div>
             </div>
             
@@ -213,21 +213,39 @@
             return { x: (clientX - CTM.e) / CTM.a, y: (clientY - CTM.f) / CTM.d };
         }
 
+        // 【重要】当たり判定を「直接タッチ」から「距離によるマグネット吸着」に変更
         function handleCourtInteraction(evt) {
             if(evt.type === 'touchstart') evt.preventDefault(); 
             
-            if (evt.target.classList.contains('player')) {
-                if (rallyModeCheckbox.checked) return;
-                
-                selectedPlayer = evt.target;
-                const mousePos = getMousePosition(evt);
-                offset.x = mousePos.x - parseFloat(selectedPlayer.getAttribute('cx'));
-                offset.y = mousePos.y - parseFloat(selectedPlayer.getAttribute('cy'));
-            } 
-            else if (rallyModeCheckbox.checked) {
-                const mousePos = getMousePosition(evt);
+            const mousePos = getMousePosition(evt);
+            
+            // ラリー記録モード中は、問答無用で軌跡を追加
+            if (rallyModeCheckbox.checked) {
                 rallyPoints.push(mousePos);
                 drawRally();
+                return;
+            }
+
+            // ドラッグモード（通常時）：半径1.5m以内にいる一番近いプレイヤーを探す
+            let closestPlayer = null;
+            let minDistance = 1.5; // 吸着（マグネット）の範囲を1.5mとする
+
+            players.forEach(player => {
+                const px = parseFloat(player.getAttribute('cx'));
+                const py = parseFloat(player.getAttribute('cy'));
+                const dist = Math.hypot(px - mousePos.x, py - mousePos.y);
+                
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closestPlayer = player;
+                }
+            });
+
+            // 近くにプレイヤーが見つかったら、それを「掴んだ」と判定する
+            if (closestPlayer) {
+                selectedPlayer = closestPlayer;
+                offset.x = mousePos.x - parseFloat(selectedPlayer.getAttribute('cx'));
+                offset.y = mousePos.y - parseFloat(selectedPlayer.getAttribute('cy'));
             }
         }
 
@@ -286,6 +304,7 @@
             const oppNode = document.getElementById('player-opp-base');
             const px = parseFloat(oppNode.getAttribute('cx'));
             const py = parseFloat(oppNode.getAttribute('cy'));
+            
             const mx = parseFloat(document.getElementById('player-me-base').getAttribute('cx'));
             const my = parseFloat(document.getElementById('player-me-base').getAttribute('cy'));
             
@@ -395,7 +414,7 @@
             } else {
                 switchMobileTab('court');
             }
-        });
+        });F
     </script>
 </body>
 </html>
