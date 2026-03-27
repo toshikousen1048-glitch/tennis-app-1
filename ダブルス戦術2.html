@@ -237,21 +237,39 @@
             return { x: (clientX - CTM.e) / CTM.a, y: (clientY - CTM.f) / CTM.d };
         }
 
+      // 【重要】当たり判定を「直接タッチ」から「距離によるマグネット吸着」に変更
         function handleCourtInteraction(evt) {
             if(evt.type === 'touchstart') evt.preventDefault(); 
             
-            if (evt.target.classList.contains('player')) {
-                if (rallyModeCheckbox.checked) return;
-                
-                selectedPlayer = evt.target;
-                const mousePos = getMousePosition(evt);
-                offset.x = mousePos.x - parseFloat(selectedPlayer.getAttribute('cx'));
-                offset.y = mousePos.y - parseFloat(selectedPlayer.getAttribute('cy'));
-            } 
-            else if (rallyModeCheckbox.checked) {
-                const mousePos = getMousePosition(evt);
+            const mousePos = getMousePosition(evt);
+            
+            // ラリー記録モード中は、問答無用で軌跡を追加
+            if (rallyModeCheckbox.checked) {
                 rallyPoints.push(mousePos);
                 drawRally();
+                return;
+            }
+
+            // ドラッグモード（通常時）：半径1.5m以内にいる一番近いプレイヤーを探す
+            let closestPlayer = null;
+            let minDistance = 1.5; // 吸着（マグネット）の範囲を1.5mとする
+
+            players.forEach(player => {
+                const px = parseFloat(player.getAttribute('cx'));
+                const py = parseFloat(player.getAttribute('cy'));
+                const dist = Math.hypot(px - mousePos.x, py - mousePos.y);
+                
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closestPlayer = player;
+                }
+            });
+
+            // 近くにプレイヤーが見つかったら、それを「掴んだ」と判定する
+            if (closestPlayer) {
+                selectedPlayer = closestPlayer;
+                offset.x = mousePos.x - parseFloat(selectedPlayer.getAttribute('cx'));
+                offset.y = mousePos.y - parseFloat(selectedPlayer.getAttribute('cy'));
             }
         }
 
@@ -266,6 +284,7 @@
         }
 
         function endDrag(evt) { selectedPlayer = null; }
+
 
         function drawRally() {
             rallyTraceLayer.innerHTML = ''; 
