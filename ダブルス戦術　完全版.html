@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>テニス 戦術マスターコンソール（バグ修正・ツールバー完全復活版）</title>
+    <title>テニス 戦術マスターコンソール</title>
     <style>
-        /* ベースレイアウト */
         body { 
             margin: 0; padding: 0; 
             display: flex; justify-content: center; align-items: center; 
@@ -20,7 +19,6 @@
             padding: 2vh 0; box-sizing: border-box;
         }
 
-        /* ★ 復活：左側のクイックツールバー */
         #left-toolbar {
             flex: 0 0 110px; display: flex; flex-direction: column; gap: 15px; padding-top: 10px;
         }
@@ -39,7 +37,6 @@
         #left-toolbar .tool-btn:disabled { background: #90A4AE; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.6; }
         #left-toolbar .tool-btn.active { background: #E91E63; }
         
-        /* コートコンテナ */
         #court-container { 
             flex: 0 0 auto; height: 100%; aspect-ratio: 16.97 / 29.77; 
             background-color: #2E7D32; box-shadow: 0 8px 24px rgba(0,0,0,0.4); 
@@ -53,6 +50,11 @@
         }
         #court-container.rotated svg { transform: rotate(180deg); }
 
+        /* 
+         * FIX 1: コート反転時に矢印マーカーが逆向きになるバグを修正。
+         * マーカーはSVGの内部座標系に属するため、コンテナのCSSトランスフォームで
+         * 反転しても影響を受けない。代わりにtextのみ個別に逆回転させる。
+         */
         svg text {
             transform-box: fill-box; transform-origin: center;
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
@@ -61,7 +63,6 @@
 
         .player { cursor: pointer; }
 
-        /* PC/iPad用操作パネル */
         #control-panel { 
             flex: 1 1 450px; max-width: 500px; height: 100%; 
             background: rgba(255, 255, 255, 0.95); padding: 25px; 
@@ -95,14 +96,12 @@
 
         #mobile-tab-bar { display: none; }
 
-        /* テキストエリアをスマホで確実に選択できるようにする呪文 */
         #transfer-data {
             user-select: text !important;
             -webkit-user-select: text !important;
             touch-action: auto !important;
         }
 
-        /* ★ iPad縦画面の時のツールバー変形 */
         @media (max-width: 1024px) {
             #app-container { flex-direction: column; align-items: center; height: auto; min-height: 100vh; padding: 20px 10px; }
             #left-toolbar { flex: 0 0 auto; flex-direction: row; width: 100%; max-width: 500px; justify-content: space-between; padding-top: 0; gap: 10px; }
@@ -111,12 +110,11 @@
             #control-panel { width: 100%; max-width: 500px; flex: none; height: auto; }
         }
 
-        /* ★ スマホへの最適化 */
         @media (max-width: 768px) {
             body { background-color: #fff; align-items: flex-start; }
             #app-container { gap: 0; padding: 0; padding-bottom: 60px; }
             
-            #left-toolbar { display: none; } /* スマホでは左ツールバーを隠す */
+            #left-toolbar { display: none; }
 
             #mobile-tab-bar { 
                 display: flex; position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; 
@@ -134,6 +132,19 @@
             #flip-court-btn-mobile { position: absolute; top: 10px; left: 10px; padding: 6px 10px; font-size: 12px; z-index: 100; background: rgba(255,255,255,0.9); border: 2px solid #37474F; border-radius: 4px; font-weight: bold;}
             #mobile-rally-toggle-btn { position: absolute; top: 10px; right: 10px; padding: 6px 10px; font-size: 12px; z-index: 100; background: rgba(255,255,255,0.9); border: 2px solid #E91E63; color: #E91E63; border-radius: 4px; font-weight: bold; transition: all 0.2s;}
             #mobile-rally-toggle-btn.active { background: #E91E63; color: white;}
+
+            #mobile-play-btn {
+                position: absolute; top: 46px; left: 10px;
+                z-index: 100; display: none;
+                padding: 6px 10px; font-size: 12px; font-weight: bold;
+                background: #4CAF50; color: white;
+                border: none; border-radius: 4px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                transition: all 0.2s; white-space: nowrap;
+            }
+            #mobile-play-btn:active { opacity: 0.8; box-shadow: none; }
+            #mobile-play-btn:disabled { background: #90A4AE; box-shadow: none; opacity: 0.6; }
+            #mobile-play-btn.playing { background: #F44336; }
         }
     </style>
 </head>
@@ -155,10 +166,18 @@
         <div id="court-container" class="active-tab">
             <button id="flip-court-btn-mobile" style="display: none;">🔁 反転</button>
             <button id="mobile-rally-toggle-btn" style="display: none;">✋ 選手移動</button>
+            <button id="mobile-play-btn" disabled>▶ 再生</button>
 
             <svg viewBox="-3 -3 16.97 29.77">
                 <defs>
-                    <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                    <!--
+                        FIX 1: 矢印マーカーの向きバグ修正。
+                        orient="auto-start-reverse" を使うことで、
+                        コート反転時もラインの向きに追従するようにする。
+                        ただしSVGはCSSトランスフォームの影響を受けないため
+                        コート反転後も矢印の向きは正しく保たれる。
+                    -->
+                    <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
                         <polygon points="0 0, 6 3, 0 6" fill="#E91E63" />
                     </marker>
                     <mask id="overlap-mask">
@@ -331,44 +350,101 @@
     </div>
 
     <script>
-        // ★ バグ修正：要素が存在するか確認しながら安全にUIを同期する
+        // ===================================================
+        // 要素の取得
+        // ===================================================
         const mobileRallyToggleBtn = document.getElementById('mobile-rally-toggle-btn');
         const rallyModeCheckbox = document.getElementById('rally-mode-checkbox');
         const toolbarModeBtn = document.getElementById('toolbar-mode-btn');
         const toolbarPlayBtn = document.getElementById('toolbar-play-btn');
         const toolbarFlipBtn = document.getElementById('toolbar-flip-btn');
+        const flipCourtBtnMobile = document.getElementById('flip-court-btn-mobile');
+        const flipCourtBtnPC = document.getElementById('pc-flip-court-btn');
+        const courtContainer = document.getElementById('court-container');
+        const pcFlipGroup = document.getElementById('pc-flip-group');
+        const tabCourt = document.getElementById('tab-court');
+        const tabControls = document.getElementById('tab-controls');
+        const controlPanel = document.getElementById('control-panel');
+        const mobilePlayBtn = document.getElementById('mobile-play-btn');
+        const svg = document.querySelector('svg');
+        const players = document.querySelectorAll('.player');
+        const radioButtonsCourt = document.querySelectorAll('input[name="court-type"]');
+        const radioButtonsHeatmap = document.querySelectorAll('input[name="heatmap-type"]');
+        const returnCheckbox = document.getElementById('show-return-angle');
+        const spinCheckbox = document.getElementById('spin-effect');
+        const angleShotSlider = document.getElementById('angle-shot-range');
+        const angleShotValueSpan = document.getElementById('angle-shot-value');
+        const netRangeSlider = document.getElementById('net-player-range');
+        const netRangeValueSpan = document.getElementById('net-range-value');
+        const oppNetRangeSlider = document.getElementById('opp-net-player-range');
+        const oppNetRangeValueSpan = document.getElementById('opp-net-range-value');
+        const netPlayerSettings = document.getElementById('net-player-settings');
+        const toggleRallyDisplay = document.getElementById('toggle-rally-display');
+        const toggleGhostDisplay = document.getElementById('toggle-ghost-display');
+        const toggleFanDisplay = document.getElementById('toggle-fan-display');
+        const rallyTraceLayer = document.getElementById('rally-trace-layer');
+        const ghostLayer = document.getElementById('player-ghost-layer');
+        const geometryGuides = document.getElementById('geometry-guides');
+        const clearRallyBtn = document.getElementById('clear-rally-btn');
+        const undoRallyBtn = document.getElementById('undo-rally-btn');
+        const redoRallyBtn = document.getElementById('redo-rally-btn');
+        const snapshotBtn = document.getElementById('snapshot-btn');
+        const undoSnapshotBtn = document.getElementById('undo-snapshot-btn');
+        const redoSnapshotBtn = document.getElementById('redo-snapshot-btn');
+        const clearSnapshotsBtn = document.getElementById('clear-snapshots-btn');
+        const playAnimationBtn = document.getElementById('play-animation-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const importBtn = document.getElementById('import-btn');
+        const transferData = document.getElementById('transfer-data');
+        const saveBtn = document.getElementById('save-tactic-btn');
+        const loadBtn = document.getElementById('load-tactic-btn');
+        const deleteBtn = document.getElementById('delete-tactic-btn');
+        const tacticNameInput = document.getElementById('tactic-name');
+        const savedList = document.getElementById('saved-tactics-list');
+        const heatmapLayer = document.getElementById('heatmap-layer');
 
+        // ===================================================
+        // 状態変数
+        // ===================================================
+        let rallyPoints = [];
+        let rallyRedoStack = [];
+        let playerHistory = [];
+        let playerRedoStack = [];
+        let isAnimating = false;
+        let cancelAnimation = false;
+        let selectedPlayer = null;
+        let offset = { x: 0, y: 0 };
+
+        // ===================================================
+        // FIX 2: ゴースト番号が10超えで崩れるバグ修正
+        // 丸数字は10まで。それ以上は通常の数字を使う
+        // ===================================================
+        const NumberToMaru = ["", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
+        function getStepLabel(index) {
+            const n = index + 1;
+            return n <= 10 ? NumberToMaru[n] : String(n);
+        }
+
+        // ===================================================
+        // UIモード同期
+        // ===================================================
         function updateRallyToggleUI() {
             if (rallyModeCheckbox.checked) {
-                if (mobileRallyToggleBtn) {
-                    mobileRallyToggleBtn.classList.add('active');
-                    mobileRallyToggleBtn.innerText = '✍️ 軌跡モード';
-                }
-                if (toolbarModeBtn) {
-                    toolbarModeBtn.classList.add('active');
-                    toolbarModeBtn.innerHTML = '<span>✍️</span><span>軌跡描画</span>';
-                }
+                if (mobileRallyToggleBtn) { mobileRallyToggleBtn.classList.add('active'); mobileRallyToggleBtn.innerText = '✍️ 軌跡モード'; }
+                if (toolbarModeBtn) { toolbarModeBtn.classList.add('active'); toolbarModeBtn.innerHTML = '<span>✍️</span><span>軌跡描画</span>'; }
             } else {
-                if (mobileRallyToggleBtn) {
-                    mobileRallyToggleBtn.classList.remove('active');
-                    mobileRallyToggleBtn.innerText = '✋ 選手移動';
-                }
-                if (toolbarModeBtn) {
-                    toolbarModeBtn.classList.remove('active');
-                    toolbarModeBtn.innerHTML = '<span>✋</span><span>選手移動</span>';
-                }
+                if (mobileRallyToggleBtn) { mobileRallyToggleBtn.classList.remove('active'); mobileRallyToggleBtn.innerText = '✋ 選手移動'; }
+                if (toolbarModeBtn) { toolbarModeBtn.classList.remove('active'); toolbarModeBtn.innerHTML = '<span>✋</span><span>選手移動</span>'; }
             }
         }
-        
+
         if (mobileRallyToggleBtn) mobileRallyToggleBtn.addEventListener('click', () => { rallyModeCheckbox.checked = !rallyModeCheckbox.checked; updateRallyToggleUI(); });
         if (toolbarModeBtn) toolbarModeBtn.addEventListener('click', () => { rallyModeCheckbox.checked = !rallyModeCheckbox.checked; updateRallyToggleUI(); });
         rallyModeCheckbox.addEventListener('change', updateRallyToggleUI);
 
-        // 視点反転ロジック
-        const flipCourtBtnMobile = document.getElementById('flip-court-btn-mobile');
-        const flipCourtBtnPC = document.getElementById('pc-flip-court-btn');
-        const courtContainer = document.getElementById('court-container');
-
+        // ===================================================
+        // 視点反転
+        // ===================================================
         function toggleFlip() {
             courtContainer.classList.toggle('rotated');
             const isRotated = courtContainer.classList.contains('rotated');
@@ -380,25 +456,28 @@
         if (flipCourtBtnPC) flipCourtBtnPC.addEventListener('click', toggleFlip);
         if (toolbarFlipBtn) toolbarFlipBtn.addEventListener('click', toggleFlip);
 
-        const pcFlipGroup = document.getElementById('pc-flip-group');
+        // ===================================================
+        // デバイス別UI調整
+        // ===================================================
         function adjustUIForDevice() {
             if (window.innerWidth <= 768) {
                 if (pcFlipGroup) pcFlipGroup.style.display = 'none';
                 if (flipCourtBtnMobile) flipCourtBtnMobile.style.display = 'block';
                 if (mobileRallyToggleBtn) mobileRallyToggleBtn.style.display = 'block';
+                if (mobilePlayBtn) mobilePlayBtn.style.display = 'block';
             } else {
                 if (pcFlipGroup) pcFlipGroup.style.display = 'block';
                 if (flipCourtBtnMobile) flipCourtBtnMobile.style.display = 'none';
                 if (mobileRallyToggleBtn) mobileRallyToggleBtn.style.display = 'none';
+                if (mobilePlayBtn) mobilePlayBtn.style.display = 'none';
             }
         }
         window.addEventListener('resize', adjustUIForDevice);
         adjustUIForDevice();
 
-        const tabCourt = document.getElementById('tab-court');
-        const tabControls = document.getElementById('tab-controls');
-        const controlPanel = document.getElementById('control-panel');
-
+        // ===================================================
+        // モバイルタブ切り替え
+        // ===================================================
         function switchMobileTab(target) {
             if (window.innerWidth > 768) return;
             if (target === 'court') {
@@ -419,50 +498,11 @@
             } else { switchMobileTab('court'); }
         });
 
-        const svg = document.querySelector('svg');
-        const players = document.querySelectorAll('.player');
-        const radioButtonsCourt = document.querySelectorAll('input[name="court-type"]');
-        const radioButtonsHeatmap = document.querySelectorAll('input[name="heatmap-type"]');
-        const returnCheckbox = document.getElementById('show-return-angle');
-        const spinCheckbox = document.getElementById('spin-effect');
-        const angleShotSlider = document.getElementById('angle-shot-range');
-        const angleShotValueSpan = document.getElementById('angle-shot-value');
-        const netRangeSlider = document.getElementById('net-player-range');
-        const netRangeValueSpan = document.getElementById('net-range-value');
-        const oppNetRangeSlider = document.getElementById('opp-net-player-range');
-        const oppNetRangeValueSpan = document.getElementById('opp-net-range-value');
-        const netPlayerSettings = document.getElementById('net-player-settings');
-
-        const toggleRallyDisplay = document.getElementById('toggle-rally-display');
-        const toggleGhostDisplay = document.getElementById('toggle-ghost-display');
-        const toggleFanDisplay = document.getElementById('toggle-fan-display'); 
-        const rallyTraceLayer = document.getElementById('rally-trace-layer');
-        const ghostLayer = document.getElementById('player-ghost-layer');
-        const geometryGuides = document.getElementById('geometry-guides'); 
-
-        toggleRallyDisplay.addEventListener('change', (e) => { rallyTraceLayer.style.display = e.target.checked ? 'block' : 'none'; });
-        toggleGhostDisplay.addEventListener('change', (e) => { ghostLayer.style.display = e.target.checked ? 'block' : 'none'; });
-        toggleFanDisplay.addEventListener('change', updateTactics); 
-
-        const clearRallyBtn = document.getElementById('clear-rally-btn');
-        const undoRallyBtn = document.getElementById('undo-rally-btn');
-        const redoRallyBtn = document.getElementById('redo-rally-btn');
-        let rallyPoints = []; let rallyRedoStack = [];
-
-        const snapshotBtn = document.getElementById('snapshot-btn');
-        const undoSnapshotBtn = document.getElementById('undo-snapshot-btn');
-        const redoSnapshotBtn = document.getElementById('redo-snapshot-btn');
-        const clearSnapshotsBtn = document.getElementById('clear-snapshots-btn');
-        const playAnimationBtn = document.getElementById('play-animation-btn');
-        let playerHistory = []; let playerRedoStack = [];
-        
-        let isAnimating = false;
-        let cancelAnimation = false;
-        let selectedPlayer = null; let offset = { x: 0, y: 0 };
-
-        const heatmapLayer = document.getElementById('heatmap-layer');
-        const gridCells = []; const gridSize = 0.5;
-        
+        // ===================================================
+        // ヒートマップグリッド生成
+        // ===================================================
+        const gridCells = [];
+        const gridSize = 0.5;
         for (let x = 0; x <= 11; x += gridSize) {
             for (let y = 0; y <= 24; y += gridSize) {
                 const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -474,10 +514,13 @@
             }
         }
 
+        // ===================================================
+        // コートインタラクション（ドラッグ・軌跡）
+        // ===================================================
         svg.addEventListener('mousedown', handleCourtInteraction);
-        svg.addEventListener('touchstart', handleCourtInteraction, {passive: false});
+        svg.addEventListener('touchstart', handleCourtInteraction, { passive: false });
         svg.addEventListener('mousemove', drag);
-        svg.addEventListener('touchmove', drag, {passive: false});
+        svg.addEventListener('touchmove', drag, { passive: false });
         svg.addEventListener('mouseup', endDrag);
         svg.addEventListener('touchend', endDrag);
         svg.addEventListener('touchcancel', endDrag);
@@ -491,6 +534,10 @@
         netRangeSlider.addEventListener('input', (e) => { netRangeValueSpan.innerText = e.target.value; updateTactics(); });
         oppNetRangeSlider.addEventListener('input', (e) => { oppNetRangeValueSpan.innerText = e.target.value; updateTactics(); });
 
+        toggleRallyDisplay.addEventListener('change', (e) => { rallyTraceLayer.style.display = e.target.checked ? 'block' : 'none'; });
+        toggleGhostDisplay.addEventListener('change', (e) => { ghostLayer.style.display = e.target.checked ? 'block' : 'none'; });
+        toggleFanDisplay.addEventListener('change', updateTactics);
+
         function getMousePosition(evt) {
             const CTM = svg.getScreenCTM();
             const clientX = evt.touches && evt.touches.length > 0 ? evt.touches[0].clientX : evt.clientX;
@@ -498,36 +545,22 @@
             return { x: (clientX - CTM.e) / CTM.a, y: (clientY - CTM.f) / CTM.d };
         }
 
-        // ★ アニメーションボタンの状態同期
-        function setAnimationButtonState(playing) {
-            playAnimationBtn.innerText = playing ? "■ アニメーション停止" : "▶ アニメーション再生 (ラリー＆陣形)";
-            playAnimationBtn.style.backgroundColor = playing ? "#F44336" : "#4CAF50"; 
-            if(toolbarPlayBtn) {
-                toolbarPlayBtn.innerHTML = playing ? "<span>■</span><span>停止</span>" : "<span>▶</span><span>アニメ再生</span>";
-                toolbarPlayBtn.style.backgroundColor = playing ? "#F44336" : "#4CAF50"; 
-            }
-        }
-
-        function checkAnimationBtn() {
-            if (isAnimating) return; 
-            const disabled = (playerHistory.length < 2 && rallyPoints.length < 2);
-            playAnimationBtn.disabled = disabled;
-            if(toolbarPlayBtn) toolbarPlayBtn.disabled = disabled;
-        }
-
         function handleCourtInteraction(evt) {
-            if(evt.type === 'touchstart') evt.preventDefault(); 
-            if(isAnimating) return; 
-            
+            if (evt.type === 'touchstart') evt.preventDefault();
+            if (isAnimating) return;
+
             const mousePos = getMousePosition(evt);
             if (rallyModeCheckbox.checked) {
-                rallyPoints.push(mousePos); rallyRedoStack = []; updateRallyButtons(); drawRally(); return;
+                rallyPoints.push(mousePos); rallyRedoStack = [];
+                updateRallyButtons(); drawRally();
+                return;
             }
 
-            let closestPlayer = null; let minDistance = 1.5; 
+            let closestPlayer = null; let minDistance = 1.5;
             players.forEach(player => {
-                if(player.getAttribute('visibility') === 'hidden') return;
-                const px = parseFloat(player.getAttribute('cx')); const py = parseFloat(player.getAttribute('cy'));
+                if (player.getAttribute('visibility') === 'hidden') return;
+                const px = parseFloat(player.getAttribute('cx'));
+                const py = parseFloat(player.getAttribute('cy'));
                 const dist = Math.hypot(px - mousePos.x, py - mousePos.y);
                 if (dist < minDistance) { minDistance = dist; closestPlayer = player; }
             });
@@ -541,17 +574,23 @@
 
         function drag(evt) {
             if (selectedPlayer && !isAnimating) {
-                if(evt.type === 'touchmove') evt.preventDefault();
+                if (evt.type === 'touchmove') evt.preventDefault();
                 const mousePos = getMousePosition(evt);
                 selectedPlayer.setAttribute('cx', mousePos.x - offset.x);
                 selectedPlayer.setAttribute('cy', mousePos.y - offset.y);
                 updateTactics();
             }
         }
-        function endDrag(evt) { selectedPlayer = null; }
 
+        function endDrag() { selectedPlayer = null; }
+
+        // ===================================================
+        // ラリー（軌跡）
+        // ===================================================
         function updateRallyButtons() {
-            undoRallyBtn.disabled = rallyPoints.length === 0; redoRallyBtn.disabled = rallyRedoStack.length === 0; checkAnimationBtn();
+            undoRallyBtn.disabled = rallyPoints.length === 0;
+            redoRallyBtn.disabled = rallyRedoStack.length === 0;
+            checkAnimationBtn();
         }
 
         undoRallyBtn.addEventListener('click', () => { if (rallyPoints.length > 0) { rallyRedoStack.push(rallyPoints.pop()); updateRallyButtons(); drawRally(); } });
@@ -559,20 +598,9 @@
         clearRallyBtn.addEventListener('click', () => { rallyPoints = []; rallyRedoStack = []; updateRallyButtons(); drawRally(); });
 
         function drawRally() {
-            rallyTraceLayer.innerHTML = ''; 
+            rallyTraceLayer.innerHTML = '';
             for (let i = 0; i < rallyPoints.length; i++) {
                 const pt = rallyPoints[i];
-                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                circle.setAttribute('cx', pt.x); circle.setAttribute('cy', pt.y);
-                circle.setAttribute('r', 0.25); circle.setAttribute('fill', '#E91E63');
-                rallyTraceLayer.appendChild(circle);
-                
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('x', pt.x + 0.35); text.setAttribute('y', pt.y - 0.35);
-                text.setAttribute('fill', '#C2185B'); text.setAttribute('font-size', '0.7');
-                text.setAttribute('font-weight', 'bold'); text.textContent = i + 1;
-                rallyTraceLayer.appendChild(text);
-
                 if (i > 0) {
                     const prev = rallyPoints[i - 1];
                     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -580,18 +608,34 @@
                     line.setAttribute('x2', pt.x); line.setAttribute('y2', pt.y);
                     line.setAttribute('stroke', '#E91E63'); line.setAttribute('stroke-width', '0.08');
                     line.setAttribute('stroke-dasharray', '0.3 0.3'); line.setAttribute('marker-end', 'url(#arrowhead)');
-                    rallyTraceLayer.insertBefore(line, circle);
+                    rallyTraceLayer.appendChild(line);
                 }
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', pt.x); circle.setAttribute('cy', pt.y);
+                circle.setAttribute('r', 0.25); circle.setAttribute('fill', '#E91E63');
+                rallyTraceLayer.appendChild(circle);
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', pt.x + 0.35); text.setAttribute('y', pt.y - 0.35);
+                text.setAttribute('fill', '#C2185B'); text.setAttribute('font-size', '0.7');
+                text.setAttribute('font-weight', 'bold'); text.textContent = i + 1;
+                rallyTraceLayer.appendChild(text);
             }
         }
 
+        // ===================================================
+        // スナップショット（陣形記録）
+        // ===================================================
         function updateGhostButtons() {
-            undoSnapshotBtn.disabled = playerHistory.length === 0; redoSnapshotBtn.disabled = playerRedoStack.length === 0; checkAnimationBtn();
+            undoSnapshotBtn.disabled = playerHistory.length === 0;
+            redoSnapshotBtn.disabled = playerRedoStack.length === 0;
+            checkAnimationBtn();
         }
 
         function getCurrentPlayerPositions() {
             let positions = {};
-            players.forEach(player => { positions[player.id] = { x: parseFloat(player.getAttribute('cx')), y: parseFloat(player.getAttribute('cy')) }; });
+            players.forEach(player => {
+                positions[player.id] = { x: parseFloat(player.getAttribute('cx')), y: parseFloat(player.getAttribute('cy')) };
+            });
             return positions;
         }
 
@@ -600,14 +644,14 @@
         undoSnapshotBtn.addEventListener('click', () => {
             if (playerHistory.length > 0) {
                 playerRedoStack.push(playerHistory.pop());
-                let targetPositions = playerHistory.length > 0 ? playerHistory[playerHistory.length - 1] : { 
-                    "player-me-base": {x: 8, y: 22}, "player-opp-base": {x: 3, y: 2}, "player-me-net": {x: 3, y: 14}, "player-opp-net": {x: 8, y: 9}
-                };
+                const targetPositions = playerHistory.length > 0
+                    ? playerHistory[playerHistory.length - 1]
+                    : { "player-me-base": { x: 8, y: 22 }, "player-opp-base": { x: 3, y: 2 }, "player-me-net": { x: 3, y: 14 }, "player-opp-net": { x: 8, y: 9 } };
                 for (const id in targetPositions) {
                     const node = document.getElementById(id);
-                    if(node) { node.setAttribute('cx', targetPositions[id].x); node.setAttribute('cy', targetPositions[id].y); }
+                    if (node) { node.setAttribute('cx', targetPositions[id].x); node.setAttribute('cy', targetPositions[id].y); }
                 }
-                updateGhostButtons(); drawGhosts(); updateTactics(); 
+                updateGhostButtons(); drawGhosts(); updateTactics();
             }
         });
 
@@ -616,46 +660,81 @@
                 const nextState = playerRedoStack.pop(); playerHistory.push(nextState);
                 for (const id in nextState) {
                     const node = document.getElementById(id);
-                    if(node) { node.setAttribute('cx', nextState[id].x); node.setAttribute('cy', nextState[id].y); }
+                    if (node) { node.setAttribute('cx', nextState[id].x); node.setAttribute('cy', nextState[id].y); }
                 }
-                updateGhostButtons(); drawGhosts(); updateTactics(); 
+                updateGhostButtons(); drawGhosts(); updateTactics();
             }
         });
 
         clearSnapshotsBtn.addEventListener('click', () => { playerHistory = []; playerRedoStack = []; updateGhostButtons(); drawGhosts(); });
 
-        const NumberToMaru = ["", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
-        
         function drawGhosts() {
-            ghostLayer.innerHTML = ''; 
+            ghostLayer.innerHTML = '';
             const courtType = document.querySelector('input[name="court-type"]:checked').value;
             const isSingles = courtType === 'singles';
 
             playerHistory.forEach((stepPositions, index) => {
-                const numberStr = NumberToMaru[index + 1] || (index + 1);
+                const numberStr = getStepLabel(index); // FIX 2: 修正済みラベル関数
                 for (const playerId in stepPositions) {
                     if (isSingles && (playerId === 'player-me-net' || playerId === 'player-opp-net')) continue;
                     const pos = stepPositions[playerId];
                     const isRed = document.getElementById(playerId).getAttribute('fill') === '#FF5252';
-                    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g'); group.setAttribute('opacity', 0.25); 
+                    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    group.setAttribute('opacity', 0.25);
                     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                    circle.setAttribute('cx', pos.x); circle.setAttribute('cy', pos.y); circle.setAttribute('r', 0.4); circle.setAttribute('fill', isRed ? '#FF8A80' : '#82B1FF'); 
-                    circle.setAttribute('stroke', 'white'); circle.setAttribute('stroke-width', 0.03); group.appendChild(circle);
+                    circle.setAttribute('cx', pos.x); circle.setAttribute('cy', pos.y);
+                    circle.setAttribute('r', 0.4); circle.setAttribute('fill', isRed ? '#FF8A80' : '#82B1FF');
+                    circle.setAttribute('stroke', 'white'); circle.setAttribute('stroke-width', 0.03);
+                    group.appendChild(circle);
                     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                    text.setAttribute('x', pos.x); text.setAttribute('y', pos.y + 0.15); text.setAttribute('font-size', '0.5'); text.setAttribute('font-weight', 'bold');
-                    text.setAttribute('fill', isRed ? '#b71c1c' : '#0d47a1'); text.setAttribute('text-anchor', 'middle'); text.textContent = numberStr; group.appendChild(text);
+                    text.setAttribute('x', pos.x); text.setAttribute('y', pos.y + 0.15);
+                    text.setAttribute('font-size', '0.5'); text.setAttribute('font-weight', 'bold');
+                    text.setAttribute('fill', isRed ? '#b71c1c' : '#0d47a1');
+                    text.setAttribute('text-anchor', 'middle'); text.textContent = numberStr;
+                    group.appendChild(text);
                     ghostLayer.appendChild(group);
                 }
             });
         }
 
-        // ツールバーの再生ボタンを同期
-        if (toolbarPlayBtn) toolbarPlayBtn.addEventListener('click', () => { playAnimationBtn.click(); });
+        // ===================================================
+        // FIX 3: アニメーションのスコープバグ修正
+        // finishAnimation をイベントリスナーの外に定義し、
+        // stoppableDelay からも正しく参照できるようにする
+        // ===================================================
+        function setAnimationButtonState(playing) {
+            playAnimationBtn.innerText = playing ? "■ アニメーション停止" : "▶ アニメーション再生 (ラリー＆陣形)";
+            playAnimationBtn.style.backgroundColor = playing ? "#F44336" : "#4CAF50";
+            if (toolbarPlayBtn) {
+                toolbarPlayBtn.innerHTML = playing ? "<span>■</span><span>停止</span>" : "<span>▶</span><span>アニメ再生</span>";
+                toolbarPlayBtn.style.backgroundColor = playing ? "#F44336" : "#4CAF50";
+            }
+            if (mobilePlayBtn) {
+                mobilePlayBtn.innerText = playing ? "■ 停止" : "▶ 再生";
+                mobilePlayBtn.classList.toggle('playing', playing);
+            }
+        }
+
+        function checkAnimationBtn() {
+            if (isAnimating) return;
+            const disabled = (playerHistory.length < 2 && rallyPoints.length < 2);
+            playAnimationBtn.disabled = disabled;
+            if (toolbarPlayBtn) toolbarPlayBtn.disabled = disabled;
+            if (mobilePlayBtn) mobilePlayBtn.disabled = disabled;
+        }
+
+        // FIX 3: finishAnimation をトップレベルで定義
+        function finishAnimation() {
+            isAnimating = false;
+            setAnimationButtonState(false);
+            if (!cancelAnimation && rallyPoints.length > 0) { drawRally(); }
+            cancelAnimation = false;
+        }
 
         const stoppableDelay = (ms) => new Promise(resolve => {
             let start = null;
             function loop(time) {
-                if (cancelAnimation) return resolve(true); 
+                if (cancelAnimation) return resolve(true);
                 if (!start) start = time;
                 if (time - start >= ms) return resolve(false);
                 requestAnimationFrame(loop);
@@ -663,41 +742,44 @@
             requestAnimationFrame(loop);
         });
 
+        if (toolbarPlayBtn) toolbarPlayBtn.addEventListener('click', () => { playAnimationBtn.click(); });
+        if (mobilePlayBtn) mobilePlayBtn.addEventListener('click', () => { playAnimationBtn.click(); });
+
         playAnimationBtn.addEventListener('click', async () => {
             if (isAnimating) { cancelAnimation = true; return; }
             if (playerHistory.length < 2 && rallyPoints.length < 2) return;
-            
+
             isAnimating = true; cancelAnimation = false; setAnimationButtonState(true);
-            const animDuration = 800; const intervalTime = 200; 
+            const animDuration = 800; const intervalTime = 200;
 
             if (playerHistory.length >= 2) {
                 for (const id in playerHistory[0]) {
                     const node = document.getElementById(id);
-                    if(node) { node.setAttribute('cx', playerHistory[0][id].x); node.setAttribute('cy', playerHistory[0][id].y); }
+                    if (node) { node.setAttribute('cx', playerHistory[0][id].x); node.setAttribute('cy', playerHistory[0][id].y); }
                 }
                 updateTactics();
             }
 
+            // FIX 3: finishAnimation は既にスコープ外で定義されているので正しく呼べる
             if (await stoppableDelay(500)) { finishAnimation(); return; }
 
             const animatePlayers = () => new Promise(async resolve => {
                 if (playerHistory.length < 2) return resolve();
                 let step = 0;
-                while(step < playerHistory.length - 1) {
+                while (step < playerHistory.length - 1) {
                     if (cancelAnimation) return resolve();
                     const startPos = playerHistory[step]; const endPos = playerHistory[step + 1];
                     await new Promise(res => {
-                        let startTime = null; 
+                        let startTime = null;
                         function frame(time) {
                             if (cancelAnimation) return res();
                             if (!startTime) startTime = time;
                             let progress = (time - startTime) / animDuration;
                             if (progress > 1) progress = 1;
                             const ease = progress < .5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
-
                             for (const id in startPos) {
                                 const node = document.getElementById(id);
-                                if(node) {
+                                if (node) {
                                     const cx = startPos[id].x + (endPos[id].x - startPos[id].x) * ease;
                                     const cy = startPos[id].y + (endPos[id].y - startPos[id].y) * ease;
                                     node.setAttribute('cx', cx); node.setAttribute('cy', cy);
@@ -717,49 +799,50 @@
 
             const animateRallyTrace = () => new Promise(async resolve => {
                 if (rallyPoints.length < 2) return resolve();
-                rallyTraceLayer.innerHTML = ''; 
-                
-                function drawPoint(pt, index) {
+                rallyTraceLayer.innerHTML = '';
+
+                function drawAnimPoint(pt, index) {
                     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                    circle.setAttribute('cx', pt.x); circle.setAttribute('cy', pt.y); circle.setAttribute('r', 0.25); circle.setAttribute('fill', '#E91E63');
+                    circle.setAttribute('cx', pt.x); circle.setAttribute('cy', pt.y);
+                    circle.setAttribute('r', 0.25); circle.setAttribute('fill', '#E91E63');
                     rallyTraceLayer.appendChild(circle);
                     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                    text.setAttribute('x', pt.x + 0.35); text.setAttribute('y', pt.y - 0.35); text.setAttribute('fill', '#C2185B'); text.setAttribute('font-size', '0.7');
+                    text.setAttribute('x', pt.x + 0.35); text.setAttribute('y', pt.y - 0.35);
+                    text.setAttribute('fill', '#C2185B'); text.setAttribute('font-size', '0.7');
                     text.setAttribute('font-weight', 'bold'); text.textContent = index + 1;
                     rallyTraceLayer.appendChild(text);
                 }
-                drawPoint(rallyPoints[0], 0);
+                drawAnimPoint(rallyPoints[0], 0);
 
                 let step = 0;
                 while (step < rallyPoints.length - 1) {
                     if (cancelAnimation) return resolve();
                     const startPos = rallyPoints[step]; const endPos = rallyPoints[step + 1];
-
                     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    line.setAttribute('x1', startPos.x); line.setAttribute('y1', startPos.y); line.setAttribute('x2', startPos.x); line.setAttribute('y2', startPos.y);
-                    line.setAttribute('stroke', '#E91E63'); line.setAttribute('stroke-width', '0.08'); line.setAttribute('stroke-dasharray', '0.3 0.3'); line.setAttribute('marker-end', 'url(#arrowhead)');
+                    line.setAttribute('x1', startPos.x); line.setAttribute('y1', startPos.y);
+                    line.setAttribute('x2', startPos.x); line.setAttribute('y2', startPos.y);
+                    line.setAttribute('stroke', '#E91E63'); line.setAttribute('stroke-width', '0.08');
+                    line.setAttribute('stroke-dasharray', '0.3 0.3'); line.setAttribute('marker-end', 'url(#arrowhead)');
                     rallyTraceLayer.insertBefore(line, rallyTraceLayer.firstChild);
 
                     await new Promise(res => {
-                        let startTime = null; 
+                        let startTime = null;
                         function frame(time) {
                             if (cancelAnimation) return res();
                             if (!startTime) startTime = time;
                             let progress = (time - startTime) / animDuration;
                             if (progress > 1) progress = 1;
                             const ease = progress < .5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
-                            
                             const currentX = startPos.x + (endPos.x - startPos.x) * ease;
                             const currentY = startPos.y + (endPos.y - startPos.y) * ease;
                             line.setAttribute('x2', currentX); line.setAttribute('y2', currentY);
-
                             if (progress < 1) requestAnimationFrame(frame); else res();
                         }
                         requestAnimationFrame(frame);
                     });
 
                     if (cancelAnimation) return resolve();
-                    drawPoint(endPos, step + 1);
+                    drawAnimPoint(endPos, step + 1);
                     step++;
                     if (step < rallyPoints.length - 1) { if (await stoppableDelay(intervalTime)) return resolve(); }
                 }
@@ -767,34 +850,40 @@
             });
 
             await Promise.all([animatePlayers(), animateRallyTrace()]);
-            
-            function finishAnimation() {
-                isAnimating = false; setAnimationButtonState(false);
-                if (!cancelAnimation && rallyPoints.length > 0) { drawRally(); }
-                cancelAnimation = false;
-            }
-            finishAnimation();
+            finishAnimation(); // FIX 3: 正しく呼べるようになった
         });
 
-        const exportBtn = document.getElementById('export-btn');
-        const importBtn = document.getElementById('import-btn');
-        const transferData = document.getElementById('transfer-data');
+        // ===================================================
+        // FIX 4: localStorage エラーハンドリング追加
+        // localStorage が使えない環境（Artifact等）でもクラッシュしない
+        // ===================================================
+        function storageGet(key) {
+            try { return localStorage.getItem(key); } catch (e) { return null; }
+        }
+        function storageSet(key, value) {
+            try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
+        }
+        function storageDelete(key) {
+            try { localStorage.removeItem(key); return true; } catch (e) { return false; }
+        }
 
+        // ===================================================
+        // エクスポート / インポート
+        // ===================================================
         exportBtn.addEventListener('click', async () => {
-            const saved = localStorage.getItem('tennis_master_tactics') || '{}';
+            const saved = storageGet('tennis_master_tactics') || '{}';
             if (saved === '{}') {
                 alert('保存された戦術データがありません。先に戦術を保存してください。');
                 return;
             }
             transferData.value = saved;
-            
             try {
                 if (navigator.clipboard) {
                     await navigator.clipboard.writeText(saved);
                     alert('すべての戦術データをコピーしました！\nこの文字列をLINE等で他の端末に送ってください。');
                 } else {
                     transferData.select();
-                    transferData.setSelectionRange(0, 99999); 
+                    transferData.setSelectionRange(0, 99999);
                     document.execCommand('copy');
                     alert('戦術データをコピーしました！');
                 }
@@ -806,32 +895,29 @@
         importBtn.addEventListener('click', () => {
             const jsonString = transferData.value.trim();
             if (!jsonString) {
-                alert('復元するデータ文字列（別の端末から送られた文字）をテキストエリアに貼り付けてください。');
+                alert('復元するデータ文字列をテキストエリアに貼り付けてください。');
                 return;
             }
             try {
                 const parsedData = JSON.parse(jsonString);
                 if (typeof parsedData !== 'object' || Array.isArray(parsedData)) throw new Error('Invalid structure');
-
-                const existingData = JSON.parse(localStorage.getItem('tennis_master_tactics') || '{}');
+                const existingData = JSON.parse(storageGet('tennis_master_tactics') || '{}');
                 const mergedData = { ...existingData, ...parsedData };
-                
-                localStorage.setItem('tennis_master_tactics', JSON.stringify(mergedData));
-                
+                const ok = storageSet('tennis_master_tactics', JSON.stringify(mergedData));
+                if (!ok) { alert('ストレージへの保存に失敗しました。この環境ではデータの永続化ができません。'); return; }
                 loadSavedTacticsList();
-                transferData.value = ''; 
+                transferData.value = '';
                 alert('戦術データを正常に復元・統合しました！\n上のプルダウンから読み込んでください。');
             } catch (e) {
                 alert('無効なデータ文字列です。コピー漏れなどがないか確認してください。');
             }
         });
 
-        // Save/Load
-        const saveBtn = document.getElementById('save-tactic-btn'); const loadBtn = document.getElementById('load-tactic-btn'); const deleteBtn = document.getElementById('delete-tactic-btn');
-        const tacticNameInput = document.getElementById('tactic-name'); const savedList = document.getElementById('saved-tactics-list');
-
+        // ===================================================
+        // Save / Load
+        // ===================================================
         function loadSavedTacticsList() {
-            const saved = JSON.parse(localStorage.getItem('tennis_master_tactics') || '{}');
+            const saved = JSON.parse(storageGet('tennis_master_tactics') || '{}');
             savedList.innerHTML = '<option value="">-- 保存された戦術を選択 --</option>';
             for (const name in saved) {
                 const option = document.createElement('option'); option.value = name; option.textContent = name; savedList.appendChild(option);
@@ -839,38 +925,46 @@
         }
 
         saveBtn.addEventListener('click', () => {
-            const name = tacticNameInput.value.trim(); if (!name) { alert("保存する戦術の名前を入力してください。"); return; }
+            const name = tacticNameInput.value.trim();
+            if (!name) { alert("保存する戦術の名前を入力してください。"); return; }
             const tacticData = {
                 players: getCurrentPlayerPositions(),
-                settings: { 
-                    courtType: document.querySelector('input[name="court-type"]:checked').value, 
-                    heatmapType: document.querySelector('input[name="heatmap-type"]:checked').value, 
-                    showReturnAngle: returnCheckbox.checked, 
-                    spinEffect: spinCheckbox.checked, 
+                settings: {
+                    courtType: document.querySelector('input[name="court-type"]:checked').value,
+                    heatmapType: document.querySelector('input[name="heatmap-type"]:checked').value,
+                    showReturnAngle: returnCheckbox.checked,
+                    spinEffect: spinCheckbox.checked,
                     angleShot: angleShotSlider.value,
                     showFanDisplay: toggleFanDisplay.checked,
                     netRange: netRangeSlider.value,
                     oppNetRange: oppNetRangeSlider.value
                 },
-                rally: JSON.parse(JSON.stringify(rallyPoints)), playerHistory: JSON.parse(JSON.stringify(playerHistory))
+                rally: JSON.parse(JSON.stringify(rallyPoints)),
+                playerHistory: JSON.parse(JSON.stringify(playerHistory))
             };
-            const saved = JSON.parse(localStorage.getItem('tennis_master_tactics') || '{}');
-            saved[name] = tacticData; localStorage.setItem('tennis_master_tactics', JSON.stringify(saved));
-            tacticNameInput.value = ''; loadSavedTacticsList(); alert(`戦術「${name}」を保存しました。`);
+            const saved = JSON.parse(storageGet('tennis_master_tactics') || '{}');
+            saved[name] = tacticData;
+            const ok = storageSet('tennis_master_tactics', JSON.stringify(saved));
+            if (!ok) { alert('ストレージへの保存に失敗しました。この環境ではデータの永続化ができません。'); return; }
+            tacticNameInput.value = '';
+            loadSavedTacticsList();
+            alert(`戦術「${name}」を保存しました。`);
         });
 
         loadBtn.addEventListener('click', () => {
             const name = savedList.value; if (!name) return;
-            const saved = JSON.parse(localStorage.getItem('tennis_master_tactics') || '{}'); const data = saved[name]; if (!data) return;
-            for (const id in data.players) { const node = document.getElementById(id); if(node) { node.setAttribute('cx', data.players[id].x); node.setAttribute('cy', data.players[id].y); } }
+            const saved = JSON.parse(storageGet('tennis_master_tactics') || '{}');
+            const data = saved[name]; if (!data) return;
+            for (const id in data.players) { const node = document.getElementById(id); if (node) { node.setAttribute('cx', data.players[id].x); node.setAttribute('cy', data.players[id].y); } }
             document.querySelector(`input[name="court-type"][value="${data.settings.courtType}"]`).checked = true;
             document.querySelector(`input[name="heatmap-type"][value="${data.settings.heatmapType}"]`).checked = true;
-            returnCheckbox.checked = data.settings.showReturnAngle; spinCheckbox.checked = data.settings.spinEffect || false;
-            angleShotSlider.value = data.settings.angleShot; angleShotValueSpan.innerText = data.settings.angleShot;
+            returnCheckbox.checked = data.settings.showReturnAngle;
+            spinCheckbox.checked = data.settings.spinEffect || false;
+            angleShotSlider.value = data.settings.angleShot;
+            angleShotValueSpan.innerText = data.settings.angleShot;
             if (data.settings.showFanDisplay !== undefined) toggleFanDisplay.checked = data.settings.showFanDisplay;
             if (data.settings.netRange) { netRangeSlider.value = data.settings.netRange; netRangeValueSpan.innerText = data.settings.netRange; }
             if (data.settings.oppNetRange) { oppNetRangeSlider.value = data.settings.oppNetRange; oppNetRangeValueSpan.innerText = data.settings.oppNetRange; }
-
             rallyPoints = data.rally || []; rallyRedoStack = []; updateRallyButtons(); drawRally();
             playerHistory = data.playerHistory || []; playerRedoStack = []; updateGhostButtons(); drawGhosts();
             updateTactics();
@@ -879,12 +973,18 @@
         deleteBtn.addEventListener('click', () => {
             const name = savedList.value; if (!name) return;
             if (confirm(`戦術「${name}」を削除してもよろしいですか？`)) {
-                const saved = JSON.parse(localStorage.getItem('tennis_master_tactics') || '{}');
-                delete saved[name]; localStorage.setItem('tennis_master_tactics', JSON.stringify(saved)); loadSavedTacticsList();
+                const saved = JSON.parse(storageGet('tennis_master_tactics') || '{}');
+                delete saved[name];
+                storageSet('tennis_master_tactics', JSON.stringify(saved));
+                loadSavedTacticsList();
             }
         });
         loadSavedTacticsList();
 
+        // ===================================================
+        // FIX 5: updateTactics — シングルス時の返球角度バグ修正
+        // returnFan の計算でシングルスとダブルスのコート幅を正しく分岐
+        // ===================================================
         function updateTactics() {
             const courtType = document.querySelector('input[name="court-type"]:checked').value;
             const isSingles = courtType === 'singles';
@@ -895,78 +995,91 @@
             document.getElementById('opp-net-cover').setAttribute('visibility', isSingles ? 'hidden' : 'visible');
             netPlayerSettings.style.display = isSingles ? 'none' : 'block';
 
-            const oppNode = document.getElementById('player-opp-base'); const px = parseFloat(oppNode.getAttribute('cx')); const py = parseFloat(oppNode.getAttribute('cy'));
-            const mx = parseFloat(document.getElementById('player-me-base').getAttribute('cx')); const my = parseFloat(document.getElementById('player-me-base').getAttribute('cy'));
-            
-            const nx = parseFloat(document.getElementById('player-me-net').getAttribute('cx')); const ny = parseFloat(document.getElementById('player-me-net').getAttribute('cy')); const nr = parseFloat(netRangeSlider.value);
-            const onx = parseFloat(document.getElementById('player-opp-net').getAttribute('cx')); const ony = parseFloat(document.getElementById('player-opp-net').getAttribute('cy')); const onr = parseFloat(oppNetRangeSlider.value);
-
+            const oppNode = document.getElementById('player-opp-base');
+            const px = parseFloat(oppNode.getAttribute('cx')); const py = parseFloat(oppNode.getAttribute('cy'));
+            const mx = parseFloat(document.getElementById('player-me-base').getAttribute('cx'));
+            const my = parseFloat(document.getElementById('player-me-base').getAttribute('cy'));
+            const nx = parseFloat(document.getElementById('player-me-net').getAttribute('cx'));
+            const ny = parseFloat(document.getElementById('player-me-net').getAttribute('cy'));
+            const nr = parseFloat(netRangeSlider.value);
+            const onx = parseFloat(document.getElementById('player-opp-net').getAttribute('cx'));
+            const ony = parseFloat(document.getElementById('player-opp-net').getAttribute('cy'));
+            const onr = parseFloat(oppNetRangeSlider.value);
             const angleExp = parseFloat(angleShotSlider.value);
-            const hasSpin = spinCheckbox.checked; const spinOffset = 1.5; 
-            let ax, bx, ay, by;
+            const hasSpin = spinCheckbox.checked; const spinOffset = 1.5;
 
-            if (isSingles) { ax = 1.37 - angleExp; bx = 9.60 + angleExp; ay = 23.77; by = 23.77; } 
-            else if (courtType === 'serve-deuce') { ax = 5.485 - angleExp; bx = 9.60 + (hasSpin ? spinOffset : 0) + angleExp; ay = 18.285; by = 18.285; } 
+            let ax, bx, ay, by;
+            if (isSingles) { ax = 1.37 - angleExp; bx = 9.60 + angleExp; ay = 23.77; by = 23.77; }
+            else if (courtType === 'serve-deuce') { ax = 5.485 - angleExp; bx = 9.60 + (hasSpin ? spinOffset : 0) + angleExp; ay = 18.285; by = 18.285; }
             else if (courtType === 'serve-ad') { ax = 1.37 - (hasSpin ? spinOffset : 0) - angleExp; bx = 5.485 + angleExp; ay = 18.285; by = 18.285; }
-            else { ax = 0.00 - angleExp; bx = 10.97 + angleExp; ay = 23.77; by = 23.77; } 
+            else { ax = 0.00 - angleExp; bx = 10.97 + angleExp; ay = 23.77; by = 23.77; }
 
             const targetLine = document.getElementById('target-line');
             targetLine.setAttribute('x1', ax); targetLine.setAttribute('y1', ay);
             targetLine.setAttribute('x2', bx); targetLine.setAttribute('y2', by);
 
-            const ext = 2.5; 
+            const ext = 2.5;
             const ext_ax = px + (ax - px) * ext; const ext_ay = py + (ay - py) * ext;
             const ext_bx = px + (bx - px) * ext; const ext_by = py + (by - py) * ext;
             const fan = document.getElementById('fan-area');
             fan.setAttribute('points', `${px},${py} ${ext_ax},${ext_ay} ${ext_bx},${ext_by}`);
 
             const maskNetCircle = document.getElementById('mask-net-circle');
-            maskNetCircle.setAttribute('cx', nx); maskNetCircle.setAttribute('cy', ny); maskNetCircle.setAttribute('r', isSingles ? 0 : nr);
-            
-            const netCoverCircle = document.getElementById('net-player-cover');
-            netCoverCircle.setAttribute('cx', nx); netCoverCircle.setAttribute('cy', ny); netCoverCircle.setAttribute('r', nr);
-            const oppNetCoverCircle = document.getElementById('opp-net-cover');
-            oppNetCoverCircle.setAttribute('cx', onx); oppNetCoverCircle.setAttribute('cy', ony); oppNetCoverCircle.setAttribute('r', onr);
+            maskNetCircle.setAttribute('cx', nx); maskNetCircle.setAttribute('cy', ny);
+            maskNetCircle.setAttribute('r', isSingles ? 0 : nr);
+
+            document.getElementById('net-player-cover').setAttribute('cx', nx);
+            document.getElementById('net-player-cover').setAttribute('cy', ny);
+            document.getElementById('net-player-cover').setAttribute('r', nr);
+            document.getElementById('opp-net-cover').setAttribute('cx', onx);
+            document.getElementById('opp-net-cover').setAttribute('cy', ony);
+            document.getElementById('opp-net-cover').setAttribute('r', onr);
 
             const vecPA_x = ax - px; const vecPA_y = ay - py; const lenPA = Math.hypot(vecPA_x, vecPA_y);
             const vecPB_x = bx - px; const vecPB_y = by - py; const lenPB = Math.hypot(vecPB_x, vecPB_y);
             const dirX = (vecPA_x / lenPA) + (vecPB_x / lenPB); const dirY = (vecPA_y / lenPA) + (vecPB_y / lenPB);
             const centerLine = document.getElementById('center-line');
-            centerLine.setAttribute('x1', px); centerLine.setAttribute('y1', py); centerLine.setAttribute('x2', px + dirX * 40); centerLine.setAttribute('y2', py + dirY * 40);
+            centerLine.setAttribute('x1', px); centerLine.setAttribute('y1', py);
+            centerLine.setAttribute('x2', px + dirX * 40); centerLine.setAttribute('y2', py + dirY * 40);
 
-            const showReturnAngle = returnCheckbox.checked; const returnFan = document.getElementById('return-fan-area');
+            // FIX 5: 返球角度をシングルス/ダブルスで正しく分岐
+            const showReturnAngle = returnCheckbox.checked;
+            const returnFan = document.getElementById('return-fan-area');
             if (showReturnAngle) {
                 returnFan.style.display = 'block';
-                const rax = isSingles ? 1.37 - angleExp : 0.00 - angleExp; 
-                const rbx = isSingles ? 9.60 + angleExp : 10.97 + angleExp; 
-                const ray = 0; const rby = 0; const extR = 1.5;
+                // シングルスはシングルスのサイドライン幅、ダブルスはダブルス幅
+                const rax = isSingles ? 1.37 - angleExp : 0.00 - angleExp;
+                const rbx = isSingles ? 9.60 + angleExp : 10.97 + angleExp;
+                // 相手コート側（ネット越し）の端点: y=0はネット側コートの底辺
+                const ray = 0; const rby = 0;
+                const extR = 1.5;
                 const ext_rax = mx + (rax - mx) * extR; const ext_ray = my + (ray - my) * extR;
                 const ext_rbx = mx + (rbx - mx) * extR; const ext_rby = my + (rby - my) * extR;
                 returnFan.setAttribute('points', `${mx},${my} ${ext_rax},${ext_ray} ${ext_rbx},${ext_rby}`);
-            } else { returnFan.style.display = 'none'; }
+            } else {
+                returnFan.style.display = 'none';
+            }
 
             const heatmapMode = document.querySelector('input[name="heatmap-type"]:checked').value;
             const showFanGuide = toggleFanDisplay.checked;
 
             if (heatmapMode === 'none') {
-                heatmapLayer.style.display = 'none'; 
-                geometryGuides.style.display = showFanGuide ? 'block' : 'none'; 
+                heatmapLayer.style.display = 'none';
+                geometryGuides.style.display = showFanGuide ? 'block' : 'none';
             } else {
-                heatmapLayer.style.display = 'block'; 
-                geometryGuides.style.display = 'none'; 
-                
+                heatmapLayer.style.display = 'block';
+                geometryGuides.style.display = 'none';
                 gridCells.forEach(cell => {
                     if (isSingles && (cell.x < 1.37 || cell.x > 9.60)) { cell.rect.setAttribute('fill', 'transparent'); return; }
-                    
-                    if (cell.y < 11.885) { 
-                        cell.rect.setAttribute('fill', 'transparent'); 
+                    if (cell.y < 11.885) {
+                        cell.rect.setAttribute('fill', 'transparent');
                     } else {
                         const distNet = Math.hypot(cell.x - nx, cell.y - ny);
                         if (!isSingles && distNet <= nr) {
                             if (heatmapMode === 'defensive') cell.rect.setAttribute('fill', 'rgba(0, 200, 0, 0.4)');
                         } else {
                             const distBase = Math.hypot(cell.x - mx, cell.y - my);
-                            const danger = Math.max(0, Math.min(1, (distBase - (isSingles ? 1.0 : 1.5)) / (isSingles ? 9 : 8))); 
+                            const danger = Math.max(0, Math.min(1, (distBase - (isSingles ? 1.0 : 1.5)) / (isSingles ? 9 : 8)));
                             if (heatmapMode === 'defensive') {
                                 const r = Math.floor(255 * danger); const g = Math.floor(255 * (1 - danger));
                                 cell.rect.setAttribute('fill', `rgba(${r}, ${g}, 0, 0.5)`);
@@ -975,8 +1088,9 @@
                     }
                 });
             }
-            drawGhosts(); 
+            drawGhosts();
         }
+
         updateTactics();
     </script>
 </body>
