@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>テニス 戦術マスターコンソール（ツールバー＆データ共有・完全版）</title>
+    <title>テニス 戦術マスターコンソール（バグ修正・ツールバー完全復活版）</title>
     <style>
         /* ベースレイアウト */
         body { 
@@ -20,7 +20,7 @@
             padding: 2vh 0; box-sizing: border-box;
         }
 
-        /* ★ 左側のクイックツールバー */
+        /* ★ 復活：左側のクイックツールバー */
         #left-toolbar {
             flex: 0 0 110px; display: flex; flex-direction: column; gap: 15px; padding-top: 10px;
         }
@@ -38,7 +38,7 @@
         #left-toolbar .tool-btn:active { transform: translateY(1px); box-shadow: none; }
         #left-toolbar .tool-btn:disabled { background: #90A4AE; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.6; }
         #left-toolbar .tool-btn.active { background: #E91E63; }
-
+        
         /* コートコンテナ */
         #court-container { 
             flex: 0 0 auto; height: 100%; aspect-ratio: 16.97 / 29.77; 
@@ -52,13 +52,18 @@
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
         #court-container.rotated svg { transform: rotate(180deg); }
-        svg text { transform-box: fill-box; transform-origin: center; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        svg text {
+            transform-box: fill-box; transform-origin: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
         #court-container.rotated svg text { transform: rotate(-180deg); }
+
         .player { cursor: pointer; }
 
         /* PC/iPad用操作パネル */
         #control-panel { 
-            flex: 1 1 400px; max-width: 450px; height: 100%; 
+            flex: 1 1 450px; max-width: 500px; height: 100%; 
             background: rgba(255, 255, 255, 0.95); padding: 25px; 
             border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
             font-size: 15px; box-sizing: border-box; overflow-y: auto; 
@@ -90,7 +95,14 @@
 
         #mobile-tab-bar { display: none; }
 
-        /* iPad縦画面（1024px以下）の時のツールバー変形 */
+        /* テキストエリアをスマホで確実に選択できるようにする呪文 */
+        #transfer-data {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            touch-action: auto !important;
+        }
+
+        /* ★ iPad縦画面の時のツールバー変形 */
         @media (max-width: 1024px) {
             #app-container { flex-direction: column; align-items: center; height: auto; min-height: 100vh; padding: 20px 10px; }
             #left-toolbar { flex: 0 0 auto; flex-direction: row; width: 100%; max-width: 500px; justify-content: space-between; padding-top: 0; gap: 10px; }
@@ -99,11 +111,12 @@
             #control-panel { width: 100%; max-width: 500px; flex: none; height: auto; }
         }
 
-        /* スマホ（768px以下）の時はツールバーを隠し、フローティングボタンに切り替え */
+        /* ★ スマホへの最適化 */
         @media (max-width: 768px) {
             body { background-color: #fff; align-items: flex-start; }
             #app-container { gap: 0; padding: 0; padding-bottom: 60px; }
-            #left-toolbar { display: none; } 
+            
+            #left-toolbar { display: none; } /* スマホでは左ツールバーを隠す */
 
             #mobile-tab-bar { 
                 display: flex; position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; 
@@ -114,10 +127,10 @@
 
             #court-container { width: 100%; height: calc(100vh - 60px); max-width: none; border-radius: 0; display: none; box-shadow: none; }
             #court-container.active-tab { display: block; } 
+
             #control-panel { width: 100%; height: calc(100vh - 60px); max-width: none; border-radius: 0; display: none; box-shadow: none; padding: 15px; }
             #control-panel.active-tab { display: flex; }
             
-            /* スマホ用のフローティングボタン */
             #flip-court-btn-mobile { position: absolute; top: 10px; left: 10px; padding: 6px 10px; font-size: 12px; z-index: 100; background: rgba(255,255,255,0.9); border: 2px solid #37474F; border-radius: 4px; font-weight: bold;}
             #mobile-rally-toggle-btn { position: absolute; top: 10px; right: 10px; padding: 6px 10px; font-size: 12px; z-index: 100; background: rgba(255,255,255,0.9); border: 2px solid #E91E63; color: #E91E63; border-radius: 4px; font-weight: bold; transition: all 0.2s;}
             #mobile-rally-toggle-btn.active { background: #E91E63; color: white;}
@@ -155,7 +168,6 @@
                 </defs>
 
                 <rect x="0" y="0" width="10.97" height="23.77" fill="#4CAF50" stroke="white" stroke-width="0.1" />
-
                 <g id="heatmap-layer"></g>
 
                 <g id="court-lines-layer">
@@ -189,11 +201,18 @@
 
         <div id="control-panel">
             
+            <div class="setting-group" id="pc-flip-group" style="background: #ECEFF1; padding: 15px; border-radius: 6px; border: 1px solid #CFD8DC;">
+                <strong style="color: #37474F; font-size: 16px;">★ 視点操作</strong>
+                <div class="radio-group">
+                    <button id="pc-flip-court-btn" class="btn" style="background-color: #37474F; width: 100%;">🔁 相手視点へ反転</button>
+                </div>
+            </div>
+
             <div class="setting-group" style="background: #ffebee; padding: 15px; border-radius: 6px; border: 1px solid #ffcdd2;">
                 <strong style="color: #c2185b; font-size: 16px;">★ 空想ラリー（ボールの軌道）</strong>
                 <div class="radio-group">
-                    <label class="toggle-label" style="display: none;">
-                        <input type="checkbox" id="rally-mode-checkbox"> 画面タッチで軌跡を記録する
+                    <label class="toggle-label">
+                        <input type="checkbox" id="rally-mode-checkbox"> <strong>画面タッチで軌跡を記録する</strong>
                     </label>
                     <label class="toggle-label">
                         <input type="checkbox" id="toggle-rally-display" checked> 軌跡（矢印）を表示する
@@ -217,7 +236,7 @@
                         <button id="undo-snapshot-btn" class="btn btn-blue" style="flex: 1;" disabled>← 戻す</button>
                         <button id="redo-snapshot-btn" class="btn btn-cyan" style="flex: 1;" disabled>進む →</button>
                     </div>
-                    <button id="play-animation-btn" class="btn btn-green" disabled style="display:none;">▶ アニメ再生</button>
+                    <button id="play-animation-btn" class="btn btn-green" disabled>▶ アニメーション再生 (ラリー＆陣形)</button>
                     <button id="clear-snapshots-btn" class="btn btn-red" style="width: 100%;">記録を全クリア</button>
                 </div>
             </div>
@@ -240,14 +259,14 @@
                 <strong style="color: #E65100; font-size: 16px;">★ データの共有とバックアップ</strong>
                 <p style="font-size: 12px; color: #555; margin: 5px 0;">他端末(iPhone/PC)に戦術を移すための文字列変換機能です。</p>
                 <div class="radio-group">
-                    <button id="export-btn" class="btn btn-orange" style="width: 100%;">📤 全戦術データを文字で書き出す</button>
+                    <button id="export-btn" class="btn btn-orange" style="width: 100%;">📤 全戦術データをコピーする</button>
                     <textarea id="transfer-data" rows="3" placeholder="ここにデータ文字列が表示・入力されます" style="width: 100%; box-sizing: border-box; border-radius: 4px; border: 1px solid #ccc; font-size: 12px; padding: 8px; resize: vertical; word-break: break-all;"></textarea>
                     <button id="import-btn" class="btn btn-blue" style="width: 100%;">📥 文字列から復元する</button>
                 </div>
             </div>
 
             <div class="setting-group">
-                <strong style="font-size: 16px;">1. ルール設定 (シングルス/ダブルス)</strong>
+                <strong style="font-size: 16px;">1. ルール設定 (シングルス/ダブルス統合)</strong>
                 <div class="radio-group" style="background: #f0f0f0; padding: 12px; border-radius: 5px; border: 1px solid #ddd;">
                     <label><input type="radio" name="court-type" value="doubles" checked> <strong>ストローク戦 (ダブルス)</strong></label>
                     <label><input type="radio" name="court-type" value="singles"> <strong>ストローク戦 (シングルス)</strong></label>
@@ -259,7 +278,7 @@
             </div>
 
             <div class="setting-group">
-                <strong style="font-size: 16px;">2. 守備の穴と幾何学ガイド</strong>
+                <strong style="font-size: 16px;">2. 守備の穴と幾何学ガイド（可視化）</strong>
                 <div class="radio-group" style="background: #f8f9fa; padding: 12px; border-radius: 5px; border: 1px solid #eee;">
                     <label class="toggle-label" style="background: #fff3e0; border-color: #ffcc80;">
                         <input type="checkbox" id="toggle-fan-display" checked> <strong style="color: #ef6c00;">相手の攻撃範囲を表示</strong>
@@ -271,7 +290,7 @@
             </div>
 
             <div class="setting-group" id="net-player-settings">
-                <strong style="font-size: 16px;">3. 前衛のプレッシャー半径</strong>
+                <strong style="font-size: 16px;">3. 前衛のプレッシャー半径 (ダブルス用)</strong>
                 <div class="radio-group">
                     <label>味方前衛(赤): <span id="net-range-value">1.8</span>m</label>
                     <input type="range" id="net-player-range" min="0" max="4" step="0.1" value="1.8" style="width: 100%;">
@@ -288,18 +307,31 @@
             </div>
             
             <div class="setting-group">
-                <strong style="font-size: 16px;">5. アングルショットの限界</strong>
+                <strong style="font-size: 16px;">5. アングルショット（スピン）の限界</strong>
                 <div class="radio-group">
                     <label>サイドへの拡張幅: <span id="angle-shot-value">0.0</span>m</label>
                     <input type="range" id="angle-shot-range" min="0" max="4" step="0.5" value="0.0" style="width: 100%;">
                 </div>
             </div>
+
+            <div class="setting-group" style="background: #F3E5F5; padding: 15px; border-radius: 6px; border: 1px solid #E1BEE7;">
+                <strong style="color: #4A148C; font-size: 16px;">📖 はじめての方へ（使い方ガイド）</strong>
+                <div style="font-size: 13px; color: #333; margin-top: 10px; line-height: 1.6;">
+                    <p style="margin: 0 0 8px;"><strong>1. 選手の移動:</strong> コート上の円（選手）をドラッグして動かします。スマホの場合は右上の「✋ 選手移動」モードで行います。</p>
+                    <p style="margin: 0 0 8px;"><strong>2. ラリーの記録:</strong> 「✍️ 軌跡モード」にしてコートをタップすると、ボールの軌道が順に引かれます。</p>
+                    <p style="margin: 0 0 8px;"><strong>3. 陣形の記録:</strong> 選手を動かしたら「配置を確定」ボタンを押します。①、②…と過去の履歴が残ります。</p>
+                    <p style="margin: 0 0 8px;"><strong>4. アニメーション再生:</strong> ラリーと陣形を記録した後に「▶ アニメ再生」を押すと、時間と動きが完全に連動して再生されます。</p>
+                    <p style="margin: 0 0 8px;"><strong>5. データの共有:</strong> 保存した戦術は「全戦術データをコピーする」で書き出し、LINE等で他の人に送って復元（インポート）させることができます。</p>
+                    <p style="margin: 0;"><strong>💡 Tips:</strong> 操作を間違えたら「← 戻す(Undo)」でやり直せます。視点反転を使って相手からの見え方も確認しましょう。</p>
+                </div>
+            </div>
+
         </div>
 
     </div>
 
     <script>
-        // ★ UI切り替え・同期ロジック
+        // ★ バグ修正：要素が存在するか確認しながら安全にUIを同期する
         const mobileRallyToggleBtn = document.getElementById('mobile-rally-toggle-btn');
         const rallyModeCheckbox = document.getElementById('rally-mode-checkbox');
         const toolbarModeBtn = document.getElementById('toolbar-mode-btn');
@@ -308,41 +340,56 @@
 
         function updateRallyToggleUI() {
             if (rallyModeCheckbox.checked) {
-                mobileRallyToggleBtn.classList.add('active');
-                mobileRallyToggleBtn.innerText = '✍️ 軌跡モード';
-                toolbarModeBtn.classList.add('active');
-                toolbarModeBtn.innerHTML = '<span>✍️</span><span>軌跡描画</span>';
+                if (mobileRallyToggleBtn) {
+                    mobileRallyToggleBtn.classList.add('active');
+                    mobileRallyToggleBtn.innerText = '✍️ 軌跡モード';
+                }
+                if (toolbarModeBtn) {
+                    toolbarModeBtn.classList.add('active');
+                    toolbarModeBtn.innerHTML = '<span>✍️</span><span>軌跡描画</span>';
+                }
             } else {
-                mobileRallyToggleBtn.classList.remove('active');
-                mobileRallyToggleBtn.innerText = '✋ 選手移動';
-                toolbarModeBtn.classList.remove('active');
-                toolbarModeBtn.innerHTML = '<span>✋</span><span>選手移動</span>';
+                if (mobileRallyToggleBtn) {
+                    mobileRallyToggleBtn.classList.remove('active');
+                    mobileRallyToggleBtn.innerText = '✋ 選手移動';
+                }
+                if (toolbarModeBtn) {
+                    toolbarModeBtn.classList.remove('active');
+                    toolbarModeBtn.innerHTML = '<span>✋</span><span>選手移動</span>';
+                }
             }
         }
-
-        mobileRallyToggleBtn.addEventListener('click', () => { rallyModeCheckbox.checked = !rallyModeCheckbox.checked; updateRallyToggleUI(); });
-        toolbarModeBtn.addEventListener('click', () => { rallyModeCheckbox.checked = !rallyModeCheckbox.checked; updateRallyToggleUI(); });
+        
+        if (mobileRallyToggleBtn) mobileRallyToggleBtn.addEventListener('click', () => { rallyModeCheckbox.checked = !rallyModeCheckbox.checked; updateRallyToggleUI(); });
+        if (toolbarModeBtn) toolbarModeBtn.addEventListener('click', () => { rallyModeCheckbox.checked = !rallyModeCheckbox.checked; updateRallyToggleUI(); });
         rallyModeCheckbox.addEventListener('change', updateRallyToggleUI);
 
+        // 視点反転ロジック
         const flipCourtBtnMobile = document.getElementById('flip-court-btn-mobile');
+        const flipCourtBtnPC = document.getElementById('pc-flip-court-btn');
         const courtContainer = document.getElementById('court-container');
 
         function toggleFlip() {
             courtContainer.classList.toggle('rotated');
             const isRotated = courtContainer.classList.contains('rotated');
-            flipCourtBtnMobile.innerText = isRotated ? '🔁 自陣へ' : '🔁 反転';
-            toolbarFlipBtn.innerHTML = isRotated ? '<span>🔁</span><span>自陣視点</span>' : '<span>🔁</span><span>相手視点</span>';
+            if (flipCourtBtnMobile) flipCourtBtnMobile.innerText = isRotated ? '🔁 自陣へ' : '🔁 反転';
+            if (flipCourtBtnPC) flipCourtBtnPC.innerText = isRotated ? '🔁 自陣視点へ戻す' : '🔁 相手視点へ反転';
+            if (toolbarFlipBtn) toolbarFlipBtn.innerHTML = isRotated ? '<span>🔁</span><span>自陣視点</span>' : '<span>🔁</span><span>相手視点</span>';
         }
-        flipCourtBtnMobile.addEventListener('click', toggleFlip);
-        toolbarFlipBtn.addEventListener('click', toggleFlip);
+        if (flipCourtBtnMobile) flipCourtBtnMobile.addEventListener('click', toggleFlip);
+        if (flipCourtBtnPC) flipCourtBtnPC.addEventListener('click', toggleFlip);
+        if (toolbarFlipBtn) toolbarFlipBtn.addEventListener('click', toggleFlip);
 
+        const pcFlipGroup = document.getElementById('pc-flip-group');
         function adjustUIForDevice() {
             if (window.innerWidth <= 768) {
-                flipCourtBtnMobile.style.display = 'block';
-                mobileRallyToggleBtn.style.display = 'block';
+                if (pcFlipGroup) pcFlipGroup.style.display = 'none';
+                if (flipCourtBtnMobile) flipCourtBtnMobile.style.display = 'block';
+                if (mobileRallyToggleBtn) mobileRallyToggleBtn.style.display = 'block';
             } else {
-                flipCourtBtnMobile.style.display = 'none';
-                mobileRallyToggleBtn.style.display = 'none';
+                if (pcFlipGroup) pcFlipGroup.style.display = 'block';
+                if (flipCourtBtnMobile) flipCourtBtnMobile.style.display = 'none';
+                if (mobileRallyToggleBtn) mobileRallyToggleBtn.style.display = 'none';
             }
         }
         window.addEventListener('resize', adjustUIForDevice);
@@ -362,8 +409,8 @@
                 controlPanel.classList.add('active-tab'); courtContainer.classList.remove('active-tab');
             }
         }
-        tabCourt.addEventListener('click', () => switchMobileTab('court'));
-        tabControls.addEventListener('click', () => switchMobileTab('controls'));
+        if (tabCourt) tabCourt.addEventListener('click', () => switchMobileTab('court'));
+        if (tabControls) tabControls.addEventListener('click', () => switchMobileTab('controls'));
 
         window.addEventListener('resize', () => {
             if (window.innerWidth > 768) {
@@ -372,7 +419,6 @@
             } else { switchMobileTab('court'); }
         });
 
-        // 既存の要素取得と初期化
         const svg = document.querySelector('svg');
         const players = document.querySelectorAll('.player');
         const radioButtonsCourt = document.querySelectorAll('input[name="court-type"]');
@@ -452,18 +498,21 @@
             return { x: (clientX - CTM.e) / CTM.a, y: (clientY - CTM.f) / CTM.d };
         }
 
+        // ★ アニメーションボタンの状態同期
         function setAnimationButtonState(playing) {
             playAnimationBtn.innerText = playing ? "■ アニメーション停止" : "▶ アニメーション再生 (ラリー＆陣形)";
             playAnimationBtn.style.backgroundColor = playing ? "#F44336" : "#4CAF50"; 
-            toolbarPlayBtn.innerHTML = playing ? "<span>■</span><span>停止</span>" : "<span>▶</span><span>アニメ再生</span>";
-            toolbarPlayBtn.style.backgroundColor = playing ? "#F44336" : "#4CAF50";
+            if(toolbarPlayBtn) {
+                toolbarPlayBtn.innerHTML = playing ? "<span>■</span><span>停止</span>" : "<span>▶</span><span>アニメ再生</span>";
+                toolbarPlayBtn.style.backgroundColor = playing ? "#F44336" : "#4CAF50"; 
+            }
         }
 
         function checkAnimationBtn() {
             if (isAnimating) return; 
             const disabled = (playerHistory.length < 2 && rallyPoints.length < 2);
             playAnimationBtn.disabled = disabled;
-            toolbarPlayBtn.disabled = disabled;
+            if(toolbarPlayBtn) toolbarPlayBtn.disabled = disabled;
         }
 
         function handleCourtInteraction(evt) {
@@ -600,7 +649,8 @@
             });
         }
 
-        toolbarPlayBtn.addEventListener('click', () => { playAnimationBtn.click(); });
+        // ツールバーの再生ボタンを同期
+        if (toolbarPlayBtn) toolbarPlayBtn.addEventListener('click', () => { playAnimationBtn.click(); });
 
         const stoppableDelay = (ms) => new Promise(resolve => {
             let start = null;
@@ -726,24 +776,30 @@
             finishAnimation();
         });
 
-        // ★ 新設：データのエクスポート/インポートロジック
         const exportBtn = document.getElementById('export-btn');
         const importBtn = document.getElementById('import-btn');
         const transferData = document.getElementById('transfer-data');
 
-        exportBtn.addEventListener('click', () => {
+        exportBtn.addEventListener('click', async () => {
             const saved = localStorage.getItem('tennis_master_tactics') || '{}';
             if (saved === '{}') {
                 alert('保存された戦術データがありません。先に戦術を保存してください。');
                 return;
             }
             transferData.value = saved;
-            transferData.select();
+            
             try {
-                document.execCommand('copy');
-                alert('すべての戦術データを文字として書き出し、コピーしました！\nこの文字列をLINEやメール等で他の端末に送ってください。');
+                if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(saved);
+                    alert('すべての戦術データをコピーしました！\nこの文字列をLINE等で他の端末に送ってください。');
+                } else {
+                    transferData.select();
+                    transferData.setSelectionRange(0, 99999); 
+                    document.execCommand('copy');
+                    alert('戦術データをコピーしました！');
+                }
             } catch (err) {
-                alert('コピーに失敗しました。表示されたテキストを手動で全選択してコピーしてください。');
+                alert('自動コピーに失敗しました。下のテキストを手動で全選択してコピーしてください。');
             }
         });
 
@@ -770,7 +826,7 @@
             }
         });
 
-        // Save/Load (通常)
+        // Save/Load
         const saveBtn = document.getElementById('save-tactic-btn'); const loadBtn = document.getElementById('load-tactic-btn'); const deleteBtn = document.getElementById('delete-tactic-btn');
         const tacticNameInput = document.getElementById('tactic-name'); const savedList = document.getElementById('saved-tactics-list');
 
