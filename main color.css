@@ -1,0 +1,132 @@
+ body {
+            margin: 0; padding: 0;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; background-color: #263238; font-family: sans-serif;
+            overflow-x: hidden;
+        }
+        #app-container {
+            display: flex; flex-direction: row; gap: 20px;
+            width: 98vw; max-width: 1800px; height: 96vh;
+            align-items: stretch; justify-content: center;
+            padding: 2vh 0; box-sizing: border-box;
+        }
+        #left-toolbar {
+            flex: 0 0 110px; display: flex; flex-direction: column; gap: 15px; padding-top: 10px;
+        }
+        #left-toolbar .tool-btn {
+            background: #37474F; color: white; border: none;
+            padding: 15px 5px; border-radius: 8px; cursor: pointer;
+            font-weight: bold; font-size: 13px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: all 0.2s;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+        }
+        #left-toolbar .tool-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.4); }
+        #left-toolbar .tool-btn:active { transform: translateY(1px); box-shadow: none; }
+        #left-toolbar .tool-btn:disabled { background: #90A4AE; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.6; }
+        #left-toolbar .tool-btn.active { background: #E91E63; }
+
+        #court-container {
+            flex: 0 0 auto; height: 100%; aspect-ratio: 16.97 / 29.77;
+            background-color: #2E7D32; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            position: relative; border-radius: 8px; overflow: hidden;
+        }
+        #court-container svg {
+            width: 100%; height: 100%;
+            user-select: none; -webkit-user-select: none; touch-action: none;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #court-container.rotated svg { transform: rotate(180deg); }
+        svg text {
+            transform-box: fill-box; transform-origin: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #court-container.rotated svg text { transform: rotate(-180deg); }
+        .player { cursor: pointer; }
+
+        #control-panel {
+            flex: 0 0 320px; max-width: 340px; height: 100%;
+            background: rgba(255,255,255,0.95); padding: 14px;
+            border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-size: 13px; box-sizing: border-box; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 12px;
+        }<!-- コントロールパネルのスタイル定義です。-->
+
+        .setting-group { border-bottom: 1px solid #ddd; padding-bottom: 15px; }<!-- コントロールパネル内の設定グループのスタイル定義です。-->
+        .setting-group:last-child { border-bottom: none; padding-bottom: 0; }
+        .radio-group { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .btn {
+            background-color: #E91E63; color: white; border: none;
+            padding: 10px 15px; border-radius: 4px; cursor: pointer;
+            font-weight: bold; margin-top: 5px; font-size: 14px; text-align: center;
+            transition: all 0.2s;
+        }
+        .btn:hover { opacity: 0.85; transform: translateY(-1px); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .btn:active { transform: translateY(1px); box-shadow: none; }
+        .btn:disabled { background-color: #ccc !important; cursor: not-allowed; opacity: 0.7; box-shadow: none; transform: none; }
+        .btn-blue { background-color: #2196F3; } .btn-cyan { background-color: #00BCD4; }
+        .btn-green { background-color: #4CAF50; } .btn-orange { background-color: #FF9800; } .btn-red { background-color: #F44336; }
+        .toggle-label {
+            display: flex; align-items: center; background: #fff;
+            padding: 8px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;
+        }
+        .toggle-label input { margin-right: 10px; transform: scale(1.2); }
+
+        /* ── シナリオタブ ── */
+        .scenario-tab-bar {
+            display: flex; gap: 0; border-radius: 6px; overflow: hidden;
+            border: 2px solid #CFD8DC; margin-top: 8px;
+        }
+        .scenario-tab-bar button {
+            flex: 1; padding: 10px 6px; border: none; cursor: pointer;
+            font-weight: bold; font-size: 13px; transition: all 0.2s;
+            background: #ECEFF1; color: #607D8B;
+        }
+        .scenario-tab-bar button.tab-common.active { background: #37474F; color: white; }
+        .scenario-tab-bar button.tab-a.active     { background: #1565C0; color: white; }
+        .scenario-tab-bar button.tab-b.active     { background: #E65100; color: white; }
+        .scenario-tab-bar button:not(.active):hover { background: #CFD8DC; }
+
+        /* シナリオ凡例バッジ */
+        .legend-row {
+            display: flex; gap: 12px; align-items: center;
+            font-size: 12px; margin-top: 6px; flex-wrap: wrap;
+        }
+        .legend-dot {
+            display: inline-block; width: 10px; height: 10px;
+            border-radius: 50%; margin-right: 4px; vertical-align: middle;
+        }
+
+        /* スマホ用 */
+        #mobile-tab-bar { display: none; }
+        #transfer-data {
+            user-select: text !important; -webkit-user-select: text !important; touch-action: auto !important;
+        }
+
+        @media (max-width: 1024px) {
+            #app-container { flex-direction: column; align-items: center; height: auto; min-height: 100vh; padding: 20px 10px; }
+            #left-toolbar { flex: 0 0 auto; flex-direction: row; width: 100%; max-width: 500px; justify-content: space-between; padding-top: 0; gap: 10px; }
+            #left-toolbar .tool-btn { flex: 1; flex-direction: row; justify-content: center; padding: 12px; font-size: 14px; gap: 5px; }
+            #court-container { width: 100%; max-width: 500px; height: auto; flex: none; }
+            #control-panel { width: 100%; max-width: 500px; flex: none; height: auto; }
+        }
+        @media (max-width: 768px) {
+            body { background-color: #fff; align-items: flex-start; }
+            #app-container { gap: 0; padding: 0; padding-bottom: 60px; }
+            #left-toolbar { display: none; }
+            #mobile-tab-bar {
+                display: flex; position: fixed; bottom: 0; left: 0; width: 100%; height: 60px;
+                background: #fff; box-shadow: 0 -3px 8px rgba(0,0,0,0.15); z-index: 2000; border-top: 1px solid #eee;
+            }
+            #mobile-tab-bar button { flex: 1; border: none; background: none; font-weight: bold; font-size: 16px; color: #555; transition: 0.2s; }
+            #mobile-tab-bar button.active { background: #37474F; color: white; }
+            #court-container { width: 100%; height: calc(100vh - 60px); max-width: none; border-radius: 0; display: none; box-shadow: none; }
+            #court-container.active-tab { display: block; }
+            #control-panel { width: 100%; height: calc(100vh - 60px); max-width: none; border-radius: 0; display: none; box-shadow: none; padding: 15px; position: relative; z-index: 100; }}
+            #control-panel.active-tab { display: flex; }
+            #flip-court-btn-mobile { position: absolute; top: 10px; left: 10px; padding: 6px 10px; font-size: 12px; z-index: 100; background: rgba(255,255,255,0.9); border: 2px solid #37474F; border-radius: 4px; font-weight: bold; }
+            #mobile-rally-toggle-btn { position: absolute; top: 10px; right: 10px; padding: 6px 10px; font-size: 12px; z-index: 100; background: rgba(255,255,255,0.9); border: 2px solid #E91E63; color: #E91E63; border-radius: 4px; font-weight: bold; transition: all 0.2s; }
+            #mobile-rally-toggle-btn.active { background: #E91E63; color: white; }
+            #mobile-play-btn { position: absolute; top: 46px; left: 10px; z-index: 100; display: none; padding: 6px 10px; font-size: 12px; font-weight: bold; background: #4CAF50; color: white; border: none; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: all 0.2s; white-space: nowrap; }
+            #mobile-play-btn:active { opacity: 0.8; box-shadow: none; }
+            #mobile-play-btn:disabled { background: #90A4AE; box-shadow: none; opacity: 0.6; }
+            #mobile-play-btn.playing { background: #F44336; }

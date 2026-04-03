@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel ="stylesheet" href="main color.css">
+    <title>テニス 戦術マスターコンソール</title>
+
+</head>
+<body><!-- 全体を包むコンテナ -->
+<div id="app-container">
+
+    <div id="mobile-tab-bar"><!-- スマホ用の「コート」「操作・設定」タブ切り替えバーです。-->
+        <button id="tab-court" class="active">コート</button>
+        <button id="tab-controls">操作・設定</button>
+    </div>
+
+    <div id="left-toolbar"><!-- PC表示時に左側に固定されるツールバーです。-->
+        <button id="toolbar-flip-btn" class="tool-btn"><span>🔁</span><span>相手視点</span></button>
+        <button id="toolbar-mode-btn" class="tool-btn"><span>✋</span><span>選手移動</span></button>
+        <button id="toolbar-play-btn" class="tool-btn" style="background-color:#4CAF50;" disabled><span>▶</span><span>アニメ再生</span></button>
+    </div>
+
+    <div id="court-container" class="active-tab"><!-- コートと選手の配置を表示するメインエリアです。-->
+        <button id="flip-court-btn-mobile" style="display:none;">🔁 反転</button>
+        <button id="mobile-rally-toggle-btn" style="display:none;">✋ 選手移動</button>
+        <button id="mobile-play-btn" disabled>▶ 再生</button>
+
+        <svg viewBox="-3 -3 16.97 29.77"><!-- コートのSVG描画エリアです。 -->
+            <defs><!-- 矢印のマーカー定義 -->
+                <marker id="arrowhead-common" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                    <polygon points="0 0, 6 3, 0 6" fill="#E91E63" />
+                </marker>
+                <marker id="arrowhead-a" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                    <polygon points="0 0, 6 3, 0 6" fill="#1976D2" />
+                </marker>
+                <marker id="arrowhead-b" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                    <polygon points="0 0, 6 3, 0 6" fill="#F57C00" />
+                </marker>
+                <mask id="overlap-mask"><!-- ネットと重なる部分を切り抜くマスク定義 -->
+                    <rect x="-10" y="-10" width="40" height="50" fill="white" /><!-- 全体を白で塗りつぶす -->
+                    <circle id="mask-net-circle" cx="0" cy="0" r="1.8" fill="black" />
+                </mask>
+            </defs>
+
+            <rect x="0" y="0" width="10.97" height="23.77" fill="#4CAF50" stroke="white" stroke-width="0.1" />
+            <!-- ↑コートのベース -->  
+
+            <g id="heatmap-layer"></g> <!-- ヒートマップのレイヤー（背景に表示） -->
+            <g id="court-lines-layer">
+                <line x1="1.37" y1="0" x2="1.37" y2="23.77" stroke="white" stroke-width="0.08" />
+                <line x1="9.60" y1="0" x2="9.60" y2="23.77" stroke="white" stroke-width="0.08" />
+                <line x1="1.37" y1="5.485" x2="9.60" y2="5.485" stroke="white" stroke-width="0.08" />
+                <line x1="1.37" y1="18.285" x2="9.60" y2="18.285" stroke="white" stroke-width="0.08" />
+                <line x1="5.485" y1="5.485" x2="5.485" y2="18.285" stroke="white" stroke-width="0.08" />
+                <line x1="-3" y1="11.885" x2="13.97" y2="11.885" stroke="black" stroke-width="0.1" stroke-dasharray="0.2 0.2" />
+            </g>
+            <g id="geometry-guides"><!-- 前衛のカバー範囲や攻撃範囲のガイド線・図形を表示するレイヤーです。 -->
+                <circle id="net-player-cover" cx="0" cy="0" r="1.8" fill="rgba(255,82,82,0.2)" stroke="rgba(255,82,82,0.5)" stroke-width="0.05" /><!-- 味方前衛のカバー範囲 -->
+                <circle id="opp-net-cover" cx="0" cy="0" r="1.8" fill="rgba(68,138,255,0.2)" stroke="rgba(68,138,255,0.5)" stroke-width="0.05" /><!-- 敵前衛のカバー範囲 -->
+                <polygon id="fan-area" points="" fill="rgba(255,235,59,0.4)" mask="url(#overlap-mask)" /><!-- 相手の攻撃範囲（ファン型） -->
+                <line id="center-line" x1="0" y1="0" x2="0" y2="0" stroke="#FF9800" stroke-width="0.08" stroke-dasharray="0.2 0.2" /><!-- コートの中心線 -->
+                <line id="target-line" x1="0" y1="0" x2="0" y2="0" stroke="#E91E63" stroke-width="0.1" stroke-dasharray="0.2 0.2" /><!-- 返球の目標ライン -->
+            </g>
+            <polygon id="return-fan-area" points="" fill="rgba(255,255,255,0.15)" stroke="#FFFFFF" stroke-width="0.06" stroke-dasharray="0.2 0.2" style="display:none;" />
+            <!-- 自分からの返球軌道を示すファン型エリア -->
+
+            <!-- 共通・シナリオ別の軌跡レイヤー（常時両方表示） -->
+            <g id="rally-layer-common"></g>
+            <g id="rally-layer-a"></g>
+            <g id="rally-layer-b"></g>
+
+            <g id="player-ghost-layer"></g>
+
+            <circle id="player-me-net"  cx="3"  cy="14" r="0.4" fill="#FF5252" stroke="white" stroke-width="0.05" class="player" />
+            <circle id="player-opp-net" cx="8"  cy="9"  r="0.4" fill="#448AFF" stroke="white" stroke-width="0.05" class="player" />
+            <circle id="player-me-base" cx="8"  cy="22" r="0.4" fill="#FF5252" stroke="white" stroke-width="0.05" class="player" />
+            <circle id="player-opp-base" cx="3" cy="2"  r="0.4" fill="#448AFF" stroke="white" stroke-width="0.05" class="player" />
+        </svg>
+    </div>
+
+    <div id="control-panel"><!-- 操作・設定を行うサイドパネルです。スマホではタブ切り替えで表示されます。-->
+
+        <div class="setting-group" id="pc-flip-group" style="background:#ECEFF1;padding:15px;border-radius:6px;border:1px solid #CFD8DC;">
+            <strong style="color:#37474F;font-size:16px;">★ 視点操作</strong>
+            <div class="radio-group">
+                <button id="pc-flip-court-btn" class="btn" style="background-color:#37474F;width:100%;">🔁 相手視点へ反転</button>
+            </div>
+        </div>
+
+        <!-- ★ シナリオ記録セクション -->
+        <div class="setting-group" style="background:#E8EAF6;padding:15px;border-radius:6px;border:1px solid #C5CAE9;">
+            <strong style="color:#283593;font-size:16px;">★ シナリオ記録（A/B 並列比較）</strong>
+            <p style="font-size:12px;color:#555;margin:6px 0 0;">共通 → シナリオA・Bの順に記録。コート上に両方同時表示されます。</p>
+
+            <!-- タブ切り替え -->
+            <div class="scenario-tab-bar"><!-- 共通・シナリオA・シナリオBのタブ切り替えボタンです。 -->
+                <button class="tab-common active" id="tab-common">📋 共通</button>
+                <button class="tab-a"             id="tab-a">🔵 シナリオ A</button>
+                <button class="tab-b"             id="tab-b">🟠 シナリオ B</button>
+            </div>
+
+            <!-- 凡例 -->
+            <div class="legend-row"><!-- 軌跡の色の凡例表示です。 -->
+                <span><span class="legend-dot" style="background:#E91E63;"></span>共通軌跡</span>
+                <span><span class="legend-dot" style="background:#1976D2;"></span>シナリオA（相手ストレート等）</span>
+                <span><span class="legend-dot" style="background:#F57C00;"></span>シナリオB（相手クロス等）</span>
+            </div>
+
+            <div class="radio-group"><!-- シナリオ記録の設定項目です。 -->
+                <label class="toggle-label">
+                    <input type="checkbox" id="rally-mode-checkbox"> <strong id="rally-mode-label">画面タッチで軌跡を記録する（共通）</strong>
+                </label>
+                <label class="toggle-label">
+                    <input type="checkbox" id="toggle-rally-display" checked> 軌跡（矢印）を表示する
+                </label>
+                <div style="display:flex;gap:8px;">
+                    <button id="undo-rally-btn" class="btn btn-blue" style="flex:1;" disabled>← 戻す</button>
+                    <button id="redo-rally-btn" class="btn btn-cyan" style="flex:1;" disabled>進む →</button>
+                </div>
+                <button id="clear-rally-btn" class="btn" style="width:100%;">現在タブの軌跡をクリア</button>
+                <button id="clear-all-rally-btn" class="btn btn-red" style="width:100%;">全シナリオの軌跡をクリア</button>
+            </div>
+        </div>
+
+        <div class="setting-group" style="background:#E0F7FA;padding:15px;border-radius:6px;border:1px solid #B2EBF2;">
+            <!-- ★ 陣形の記録とアニメーションセクション -->
+            
+            <strong style="color:#006064;font-size:16px;">★ 陣形の記録とアニメーション</strong>
+            <div class="radio-group">
+                <label class="toggle-label">
+                    <input type="checkbox" id="toggle-ghost-display" checked> <strong>プレイヤーの過去位置を表示</strong>
+                </label>
+                <button id="snapshot-btn" class="btn btn-cyan">ここでの配置を確定 (①②...)</button>
+                <div style="display:flex;gap:8px;">
+                    <button id="undo-snapshot-btn" class="btn btn-blue" style="flex:1;" disabled>← 戻す</button>
+                    <button id="redo-snapshot-btn" class="btn btn-cyan" style="flex:1;" disabled>進む →</button>
+                </div>
+                <button id="play-animation-btn" class="btn btn-green" disabled>▶ アニメーション再生</button>
+                <button id="clear-snapshots-btn" class="btn btn-red" style="width:100%;">陣形記録を全クリア</button>
+            </div>
+        </div>
+
+        <div class="setting-group" style="background:#E8F5E9;padding:15px;border-radius:6px;border:1px solid #C8E6C9;">
+            <strong style="color:#2E7D32;font-size:16px;">★ 戦術データベース (Save/Load)</strong>
+            <div class="radio-group">
+                <input type="text" id="tactic-name" placeholder="戦術名を入力" style="padding:10px;width:100%;box-sizing:border-box;border-radius:4px;border:1px solid #ccc;font-size:14px;">
+                <button id="save-tactic-btn" class="btn btn-green">現在の状態を保存</button>
+                <hr style="border-top:1px dashed #A5D6A7;margin:10px 0;">
+                <select id="saved-tactics-list" style="padding:10px;width:100%;box-sizing:border-box;border-radius:4px;border:1px solid #ccc;font-size:14px;"></select>
+                <div style="display:flex;gap:8px;">
+                    <button id="load-tactic-btn" class="btn btn-orange" style="flex:2;">読み込む</button>
+                    <button id="delete-tactic-btn" class="btn btn-red" style="flex:1;">削除</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="setting-group" style="background:#FFF3E0;padding:15px;border-radius:6px;border:1px solid #FFE0B2;">
+            <strong style="color:#E65100;font-size:16px;">★ データの共有とバックアップ</strong>
+            <p style="font-size:12px;color:#555;margin:5px 0;">他端末(iPhone/PC)に戦術を移すための文字列変換機能です。</p>
+            <div class="radio-group">
+                <button id="export-btn" class="btn btn-orange" style="width:100%;">📤 全戦術データをコピーする</button>
+                <textarea id="transfer-data" rows="3" placeholder="ここにデータ文字列が表示・入力されます" style="width:100%;box-sizing:border-box;border-radius:4px;border:1px solid #ccc;font-size:12px;padding:8px;resize:vertical;word-break:break-all;"></textarea>
+                <button id="import-btn" class="btn btn-blue" style="width:100%;">📥 文字列から復元する</button>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <strong style="font-size:16px;">1. ルール設定</strong>
+            <div class="radio-group" style="background:#f0f0f0;padding:12px;border-radius:5px;border:1px solid #ddd;">
+                <label><input type="radio" name="court-type" value="doubles" checked> <strong>ストローク戦 (ダブルス)</strong></label>
+                <label><input type="radio" name="court-type" value="singles"> <strong>ストローク戦 (シングルス)</strong></label>
+                <hr style="border-top:1px solid #ccc;margin:5px 0;">
+                <label><input type="radio" name="court-type" value="serve-deuce"> サーブ (デュースサイドへ)</label>
+                <label><input type="radio" name="court-type" value="serve-ad"> サーブ (アドサイドへ)</label>
+                <label><input type="checkbox" id="spin-effect"> サーブ時外側へ逃げるスピンを加味</label>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <strong style="font-size:16px;">2. 守備の穴と幾何学ガイド</strong>
+            <div class="radio-group" style="background:#f8f9fa;padding:12px;border-radius:5px;border:1px solid #eee;">
+                <label class="toggle-label" style="background:#fff3e0;border-color:#ffcc80;">
+                    <input type="checkbox" id="toggle-fan-display" checked> <strong style="color:#ef6c00;">相手の攻撃範囲を表示</strong>
+                </label>
+                <hr style="border-top:1px solid #ddd;margin:5px 0;">
+                <label><input type="radio" name="heatmap-type" value="none" checked> ヒートマップ: オフ</label>
+                <label><input type="radio" name="heatmap-type" value="defensive"> <strong>ヒートマップ: オン (危険度)</strong></label>
+            </div>
+        </div>
+
+        <div class="setting-group" id="net-player-settings">
+            <strong style="font-size:16px;">3. 前衛のプレッシャー半径 (ダブルス用)</strong>
+            <div class="radio-group">
+                <label>味方前衛(赤): <span id="net-range-value">1.8</span>m</label>
+                <input type="range" id="net-player-range" min="0" max="4" step="0.1" value="1.8" style="width:100%;">
+                <label>敵陣前衛(青): <span id="opp-net-range-value">1.8</span>m</label>
+                <input type="range" id="opp-net-player-range" min="0" max="4" step="0.1" value="1.8" style="width:100%;">
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <strong style="font-size:16px;">4. 返球アングルの可視化</strong>
+            <div class="radio-group">
+                <label class="toggle-label"><input type="checkbox" id="show-return-angle"> 自分からの返球軌道を表示</label>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <strong style="font-size:16px;">5. アングルショット（スピン）の限界</strong>
+            <div class="radio-group">
+                <label>サイドへの拡張幅: <span id="angle-shot-value">0.0</span>m</label>
+                <input type="range" id="angle-shot-range" min="0" max="4" step="0.5" value="0.0" style="width:100%;">
+            </div>
+        </div>
+
+        <div class="setting-group" style="background:#F3E5F5;padding:15px;border-radius:6px;border:1px solid #E1BEE7;">
+            <strong style="color:#4A148C;font-size:16px;">📖 使い方ガイド</strong>
+            <div style="font-size:13px;color:#333;margin-top:10px;line-height:1.7;">
+                <p style="margin:0 0 6px;"><strong>シナリオA/B 並列表示の使い方:</strong></p>
+                <p style="margin:0 0 6px;">① 「共通」タブで全シナリオ共通の動き（サーブ後の初動など）を軌跡で記録</p>
+                <p style="margin:0 0 6px;">② 「シナリオA」タブに切り替えて、例えば「相手がストレートに来た場合」の展開を記録</p>
+                <p style="margin:0 0 6px;">③ 「シナリオB」タブに切り替えて、「相手がクロスに来た場合」の展開を記録</p>
+                <p style="margin:0 0 6px;">④ コート上にピンク（共通）・青（A）・オレンジ（B）が同時表示され、並列比較できます</p>
+                <hr style="border-top:1px dashed #CE93D8;margin:8px 0;">
+                <p style="margin:0 0 4px;"><strong>その他:</strong> 選手をドラッグ→「配置を確定」→「▶ アニメ再生」で動きを確認できます。「全戦術データをコピー」でチームメンバーに共有できます。</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+<script src="main.js"></script>
+</body>
+</html>
